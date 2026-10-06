@@ -126,7 +126,7 @@
           <div class="min-w-0">
             <a
               href={resolve('/app/pelanggan/[id]', { id: reminder.customer.id })}
-              class="text-lg font-semibold text-accent-700 underline dark:text-accent-300"
+              class="inline-flex min-h-11 items-center text-lg font-semibold text-accent-700 underline dark:text-accent-300"
             >
               {reminder.customer.name}
             </a>

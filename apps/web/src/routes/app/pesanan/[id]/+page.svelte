@@ -200,7 +200,7 @@
         <div class="min-w-0">
           <a
             href={resolve('/app/pelanggan/[id]', { id: order.customer_id })}
-            class="text-xl font-bold text-accent-700 underline dark:text-accent-300"
+            class="inline-flex min-h-11 items-center text-xl font-bold text-accent-700 underline dark:text-accent-300"
           >
             {order.delivery_name}
           </a>
@@ -218,7 +218,7 @@
           </Badge>
         </div>
       </div>
-      <dl class="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+      <dl class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div>
           <dt class="text-muted">Cara ambil</dt>
           <dd class="font-medium">{fulfilmentLabel(order.fulfilment)}</dd>

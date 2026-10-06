@@ -101,7 +101,9 @@
 
   <p class="text-center text-muted">
     Belum punya akun?
-    <a href={resolve('/daftar')} class="font-semibold text-accent-700 dark:text-accent-300"
+    <a
+      href={resolve('/daftar')}
+      class="inline-flex min-h-11 items-center px-1 font-semibold text-accent-700 dark:text-accent-300"
       >Daftar</a
     >
   </p>

@@ -52,7 +52,7 @@
     >
       <div class="min-w-0">
         <p class="truncate text-lg font-bold">{session.user?.name}</p>
-        <p class="truncate text-sm text-muted">{session.depot?.name}</p>
+        <p class="truncate text-muted">{session.depot?.name}</p>
       </div>
       <Button variant="ghost" size="lg" loading={loggingOut} onclick={logout}>Keluar</Button>
     </header>

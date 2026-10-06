@@ -33,7 +33,7 @@
       </a>
       <a
         href={resolve('/daftar')}
-        class="tap flex flex-1 items-center justify-center rounded-lg border border-border bg-surface px-6 font-semibold text-accent-700 hover:bg-accent-50"
+        class="tap flex flex-1 items-center justify-center rounded-lg border border-border bg-surface px-6 font-semibold text-accent-700 hover:bg-accent-50 dark:text-accent-300 dark:hover:bg-accent-900/40"
       >
         Daftar
       </a>

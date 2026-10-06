@@ -32,6 +32,7 @@
 
   const titleId = $props.id();
 
+  let sheet = $state<HTMLDivElement>();
   let returned = $derived(order.refill_qty);
   let payment = $state<Payment | null>(null);
   let saveLocation = $state(false);
@@ -47,6 +48,14 @@
     }
     onsubmit(payload, saveLocation);
   }
+
+  $effect(() => {
+    const opener = document.activeElement;
+    sheet?.focus();
+    return () => {
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+  });
 </script>
 
 <svelte:window onkeydown={(event) => event.key === 'Escape' && onclose()} />
@@ -59,9 +68,11 @@
 ></button>
 
 <div
+  bind:this={sheet}
   role="dialog"
   aria-modal="true"
   aria-labelledby={titleId}
+  tabindex="-1"
   class="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-md flex-col gap-4 rounded-t-xl bg-surface p-4 pb-6 shadow-card"
 >
   <div>

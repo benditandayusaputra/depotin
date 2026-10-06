@@ -31,9 +31,9 @@
       bind:value
       aria-invalid={error ? true : undefined}
       aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
-      class="min-h-12 w-full rounded-lg border bg-surface px-3 text-base text-text placeholder:text-neutral-400 {error
+      class="min-h-12 w-full rounded-lg border bg-surface px-3 text-base text-text placeholder:text-muted {error
         ? 'border-status-cancelled'
-        : 'border-border'} {trailing ? 'pr-14' : ''}"
+        : 'border-border'} {trailing ? 'pr-32' : ''}"
       {...rest}
     />
     {#if trailing}

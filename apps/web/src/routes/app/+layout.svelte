@@ -140,7 +140,7 @@
           <a
             href={resolve(item.href)}
             aria-current={active ? 'page' : undefined}
-            class="flex min-h-12 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium transition-colors {active
+            class="flex min-h-12 flex-col items-center justify-center gap-0.5 py-2 text-sm font-medium transition-colors {active
               ? 'text-accent-700 dark:text-accent-300'
               : 'text-muted'} {ordersFlash && item.href === ORDERS_PATH
               ? 'bg-accent-50 dark:bg-accent-900/40'

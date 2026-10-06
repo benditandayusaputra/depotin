@@ -3,7 +3,13 @@
 
   export type Tone = 'pending' | 'confirmed' | 'delivery' | 'done' | 'cancelled' | 'neutral';
 
-  let { tone = 'neutral', children }: { tone?: Tone; children: Snippet } = $props();
+  export type Size = 'sm' | 'md';
+
+  let {
+    tone = 'neutral',
+    size = 'sm',
+    children
+  }: { tone?: Tone; size?: Size; children: Snippet } = $props();
 
   const toneClasses: Record<Tone, string> = {
     pending: 'bg-status-pending-soft text-status-pending',
@@ -16,9 +22,10 @@
 </script>
 
 <span
-  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-semibold whitespace-nowrap {toneClasses[
-    tone
-  ]}"
+  class="inline-flex items-center rounded-full px-2.5 py-0.5 font-semibold whitespace-nowrap {size ===
+  'sm'
+    ? 'text-sm'
+    : 'text-base'} {toneClasses[tone]}"
 >
   {@render children()}
 </span>

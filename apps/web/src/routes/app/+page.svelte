@@ -109,7 +109,7 @@
         <p class="text-num">{summary.reminders_queued}</p>
         <a
           href={resolve('/app/pengingat')}
-          class="text-sm font-semibold text-accent-700 underline dark:text-accent-300"
+          class="inline-flex min-h-11 items-center font-semibold text-accent-700 underline dark:text-accent-300"
         >
           Buka pengingat
         </a>
