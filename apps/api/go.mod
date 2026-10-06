@@ -2,6 +2,8 @@ module github.com/benditandayusaputra/depotin/apps/api
 
 go 1.26.0
 
+toolchain go1.26.8
+
 require (
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/goccy/go-json v0.11.2
