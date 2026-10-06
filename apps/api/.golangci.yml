@@ -1,0 +1,40 @@
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: standard
+  enable:
+    - errorlint
+    - gocritic
+    - misspell
+    - nilerr
+    - unconvert
+    - unparam
+    - wrapcheck
+  settings:
+    wrapcheck:
+      ignore-sigs:
+        - .Next(
+        - .JSON(
+        - .SendStatus(
+        - .SendString(
+        - httpx.Fail(
+        - httpx.OK(
+        - httpx.Created(
+        - httpx.List(
+        - fmt.Errorf(
+        - errors.New(
+        - errors.Join(
+      ignore-package-globs:
+        - github.com/benditandayusaputra/depotin/apps/api/internal/platform/httpx
+  exclusions:
+    paths:
+      - db/sqlc
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/benditandayusaputra/depotin
