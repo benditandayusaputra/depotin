@@ -41,7 +41,7 @@
         <p class="truncate text-lg font-bold">{session.user?.name}</p>
         <p class="truncate text-sm text-muted">{session.depot?.name}</p>
       </div>
-      <Button variant="ghost" loading={loggingOut} onclick={logout}>Keluar</Button>
+      <Button variant="ghost" size="lg" loading={loggingOut} onclick={logout}>Keluar</Button>
     </header>
     <main class="mx-auto w-full max-w-md flex-1 px-4 py-5">
       {@render children()}
