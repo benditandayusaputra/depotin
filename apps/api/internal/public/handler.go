@@ -37,9 +37,11 @@ const (
 )
 
 var (
-	publicOrderIPRule    = ratelimit.Rule{Limit: 5, Window: 10 * time.Minute}
-	publicOrderPhoneRule = ratelimit.Rule{Limit: 3, Window: time.Hour}
-	tokenReadRule        = ratelimit.Rule{Limit: 60, Window: time.Minute}
+	publicOrderIPRule        = ratelimit.Rule{Limit: 5, Window: 10 * time.Minute}
+	publicOrderIPRuleRelaxed = ratelimit.Rule{Limit: 100, Window: 10 * time.Minute}
+	publicOrderPhoneRule     = ratelimit.Rule{Limit: 3, Window: time.Hour}
+	publicOrderPhoneRelaxed  = ratelimit.Rule{Limit: 100, Window: time.Hour}
+	tokenReadRule            = ratelimit.Rule{Limit: 60, Window: time.Minute}
 )
 
 type cachedPage struct {
@@ -48,15 +50,21 @@ type cachedPage struct {
 }
 
 type Handler struct {
-	orders  *order.Service
-	q       *sqlc.Queries
-	clock   clock.Clock
-	limiter *ratelimit.Limiter
-	pages   *cache.TTL[cachedPage]
+	orders    *order.Service
+	q         *sqlc.Queries
+	clock     clock.Clock
+	limiter   *ratelimit.Limiter
+	pages     *cache.TTL[cachedPage]
+	ipRule    ratelimit.Rule
+	phoneRule ratelimit.Rule
 }
 
-func NewHandler(orders *order.Service, clk clock.Clock, limiter *ratelimit.Limiter) *Handler {
-	return &Handler{orders: orders, q: orders.Queries(), clock: clk, limiter: limiter, pages: cache.New[cachedPage](clk, depotCacheTTL)}
+func NewHandler(orders *order.Service, clk clock.Clock, limiter *ratelimit.Limiter, relaxed bool) *Handler {
+	h := &Handler{orders: orders, q: orders.Queries(), clock: clk, limiter: limiter, pages: cache.New[cachedPage](clk, depotCacheTTL), ipRule: publicOrderIPRule, phoneRule: publicOrderPhoneRule}
+	if relaxed {
+		h.ipRule, h.phoneRule = publicOrderIPRuleRelaxed, publicOrderPhoneRelaxed
+	}
+	return h
 }
 
 func (h *Handler) InvalidateDepot(slug string) {
@@ -75,11 +83,11 @@ func (h *Handler) InvalidateDepotByID(depotID uuid.UUID) {
 
 func (h *Handler) Register(r fiber.Router) {
 	r.Get("/public/depots/:slug", h.depotPage)
-	r.Post("/public/depots/:slug/orders", httpx.RateLimitByIP(h.limiter, publicOrderIPRule, "public-order"), h.publicOrder)
+	r.Post("/public/depots/:slug/orders", httpx.RateLimitByIP(h.limiter, h.ipRule, "public-order"), h.publicOrder)
 	r.Get("/public/track/:token", httpx.RateLimitByIP(h.limiter, tokenReadRule, "token-read"), h.track)
 	r.Post("/public/track/:token/cancel", httpx.RateLimitByIP(h.limiter, tokenReadRule, "token-read"), h.cancelTracked)
 	r.Get("/public/me/:token", httpx.RateLimitByIP(h.limiter, tokenReadRule, "token-read"), h.me)
-	r.Post("/public/me/:token/orders", httpx.RateLimitByIP(h.limiter, publicOrderIPRule, "public-order"), h.reorder)
+	r.Post("/public/me/:token/orders", httpx.RateLimitByIP(h.limiter, h.ipRule, "public-order"), h.reorder)
 }
 
 func (h *Handler) depotPage(c fiber.Ctx) error {
@@ -146,7 +154,7 @@ func (h *Handler) publicOrder(c fiber.Ctx) error {
 	if !depot.IsAcceptingOrders {
 		return httpx.Fail(c, httpx.Conflict("Depot sedang tidak menerima pesanan."))
 	}
-	if err := httpx.CheckLimit(c, h.limiter, publicOrderPhoneRule, "public-order-phone:"+depot.ID.String()+":"+normalized); err != nil {
+	if err := httpx.CheckLimit(c, h.limiter, h.phoneRule, "public-order-phone:"+depot.ID.String()+":"+normalized); err != nil {
 		return httpx.Fail(c, err)
 	}
 	pending, err := h.q.CountPendingOrdersByPhone(c.Context(), sqlc.CountPendingOrdersByPhoneParams{DepotID: depot.ID, DeliveryPhone: normalized})

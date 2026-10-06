@@ -47,7 +47,7 @@ func run() error {
 	defer pool.Close()
 
 	clk := clock.System{}
-	app, reminders, err := buildApp(dependencies{cfg: cfg, log: log, pool: pool, clock: clk})
+	app, reminders, err := buildApp(dependencies{cfg: cfg, log: log, pool: pool, clock: clk, relaxedLimits: !cfg.IsProduction()})
 	if err != nil {
 		return fmt.Errorf("susun aplikasi: %w", err)
 	}

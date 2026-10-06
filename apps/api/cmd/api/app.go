@@ -37,10 +37,11 @@ const (
 var globalRule = ratelimit.Rule{Limit: 300, Window: time.Minute}
 
 type dependencies struct {
-	cfg   config.Config
-	log   *slog.Logger
-	pool  *pgxpool.Pool
-	clock clock.Clock
+	cfg           config.Config
+	log           *slog.Logger
+	pool          *pgxpool.Pool
+	clock         clock.Clock
+	relaxedLimits bool
 }
 
 func newApp(d dependencies) (*fiber.App, error) {
@@ -97,7 +98,7 @@ func buildApp(d dependencies) (*fiber.App, *reminder.Service, error) {
 	links := customer.NewLinks(d.cfg.WebOrigin, sealer)
 
 	authSvc := auth.NewService(d.pool, d.clock, tokens)
-	auth.NewHandler(authSvc, cookies, d.clock, limiter, !d.cfg.IsProduction()).Register(v1.Group("/auth"))
+	auth.NewHandler(authSvc, cookies, d.clock, limiter, d.relaxedLimits).Register(v1.Group("/auth"))
 
 	ownerOnly := httpx.RequireRole(auth.RoleOwner)
 	user.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
@@ -107,7 +108,7 @@ func buildApp(d dependencies) (*fiber.App, *reminder.Service, error) {
 	orderHandler.Register(v1, ownerOnly, auth.RequireLogin())
 	orderHandler.RegisterCourier(v1, httpx.RequireRole(auth.RoleCourier))
 	gallon.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
-	publicHandler := public.NewHandler(orderSvc, d.clock, limiter)
+	publicHandler := public.NewHandler(orderSvc, d.clock, limiter, d.relaxedLimits)
 	publicHandler.Register(v1)
 	depot.NewHandler(d.pool, publicHandler.InvalidateDepot).Register(v1, ownerOnly)
 	product.NewHandler(d.pool, publicHandler.InvalidateDepotByID).Register(v1, ownerOnly)

@@ -172,3 +172,5 @@ Diukur dengan `go test -race -coverpkg=./internal/... ./...` termasuk tes HTTP d
 | internal/stream | 81,8% |
 | internal/public | 81,3% |
 | internal/reminder | 80,3% |
+
+Tambahan: batas pesanan publik per IP dan per nomor juga dilonggarkan menjadi 100 pada `APP_ENV=development` dengan alasan yang sama. Tes HTTP di `cmd/api` menyusun aplikasi tanpa pelonggaran sehingga tetap memverifikasi batas asli (5 per 10 menit per IP, 3 per jam per nomor, 3 pendaftaran per jam).
