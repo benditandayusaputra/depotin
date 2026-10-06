@@ -1,7 +1,6 @@
 package stream
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -73,13 +72,7 @@ func (h *Handler) authorize(c fiber.Ctx) error {
 
 func (h *Handler) serve(c fiber.Ctx, stream *sse.Stream) error {
 	p, _ := httpx.CurrentPrincipal(c)
-	sub, ok := h.hub.Subscribe(p.UserID, p.DepotID, p.Role)
-	if !ok {
-		if err := stream.Event(sse.Event{Name: "error", Data: map[string]string{"code": "too_many_connections"}}); err != nil {
-			return fmt.Errorf("kirim galat stream: %w", err)
-		}
-		return nil
-	}
+	sub := h.hub.Subscribe(p.UserID, p.DepotID, p.Role)
 	defer h.hub.Unsubscribe(sub)
 	if err := stream.Event(sse.Event{Name: "ready", Data: map[string]string{"role": p.Role}}); err != nil {
 		return nil

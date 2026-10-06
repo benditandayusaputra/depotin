@@ -31,7 +31,7 @@ JOIN customers ON customers.id = reminders.customer_id
 WHERE reminders.depot_id = $1
   AND reminders.status = ANY(sqlc.arg('statuses')::text[])
   AND reminders.due_date >= sqlc.arg('from_date')::date
-ORDER BY reminders.status, reminders.predicted_empty_at, reminders.id
+ORDER BY reminders.status, abs(extract(epoch FROM reminders.predicted_empty_at - sqlc.arg('now')::timestamptz)), reminders.id
 LIMIT $2;
 
 -- name: MarkReminderSent :one

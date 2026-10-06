@@ -12,14 +12,8 @@ func TestHubFanOutAndLimits(t *testing.T) {
 	owner := uuid.New()
 	courier := uuid.New()
 
-	o, ok := h.Subscribe(owner, depot, "owner")
-	if !ok {
-		t.Fatal("owner subscribe")
-	}
-	c, ok := h.Subscribe(courier, depot, "courier")
-	if !ok {
-		t.Fatal("courier subscribe")
-	}
+	o := h.Subscribe(owner, depot, "owner")
+	c := h.Subscribe(courier, depot, "courier")
 	h.Publish(depot, Event{Name: EventOrderNew}, func(s *Subscriber) bool { return s.Role == "owner" })
 	select {
 	case e := <-o.Events:
@@ -42,26 +36,31 @@ func TestHubFanOutAndLimits(t *testing.T) {
 	}
 
 	for i := 1; i < MaxPerUser; i++ {
-		if _, ok := h.Subscribe(owner, depot, "owner"); !ok {
-			t.Fatalf("subscription %d should pass", i+1)
-		}
+		h.Subscribe(owner, depot, "owner")
 	}
-	if _, ok := h.Subscribe(owner, depot, "owner"); ok {
-		t.Fatal("4th subscription must be refused")
+	if h.Count(depot) != MaxPerUser+1 {
+		t.Fatalf("expected %d subscribers, got %d", MaxPerUser+1, h.Count(depot))
 	}
-	h.Unsubscribe(o)
-	if _, ok := h.Subscribe(owner, depot, "owner"); !ok {
-		t.Fatal("slot should free after unsubscribe")
+	h.Subscribe(owner, depot, "owner")
+	if h.Count(depot) != MaxPerUser+1 {
+		t.Fatalf("newest connection must replace the oldest, got %d", h.Count(depot))
 	}
 	if _, open := <-o.Events; open {
-		t.Fatal("channel should be closed")
+		t.Fatal("oldest owner channel should be closed")
+	}
+	select {
+	case _, open := <-c.Events:
+		if !open {
+			t.Fatal("courier channel must stay open")
+		}
+	default:
 	}
 }
 
 func TestSlowClientIsDropped(t *testing.T) {
 	h := NewHub()
 	depot, user := uuid.New(), uuid.New()
-	s, _ := h.Subscribe(user, depot, "owner")
+	s := h.Subscribe(user, depot, "owner")
 	for range clientBuffer + 1 {
 		h.Publish(depot, Event{Name: EventOrderUpd}, nil)
 	}

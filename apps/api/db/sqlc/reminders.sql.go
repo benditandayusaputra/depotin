@@ -124,7 +124,7 @@ JOIN customers ON customers.id = reminders.customer_id
 WHERE reminders.depot_id = $1
   AND reminders.status = ANY($3::text[])
   AND reminders.due_date >= $4::date
-ORDER BY reminders.status, reminders.predicted_empty_at, reminders.id
+ORDER BY reminders.status, abs(extract(epoch FROM reminders.predicted_empty_at - $5::timestamptz)), reminders.id
 LIMIT $2
 `
 
@@ -133,6 +133,7 @@ type ListRemindersParams struct {
 	Limit    int32
 	Statuses []string
 	FromDate time.Time
+	Now      time.Time
 }
 
 type ListRemindersRow struct {
@@ -146,6 +147,7 @@ func (q *Queries) ListReminders(ctx context.Context, arg ListRemindersParams) ([
 		arg.Limit,
 		arg.Statuses,
 		arg.FromDate,
+		arg.Now,
 	)
 	if err != nil {
 		return nil, err

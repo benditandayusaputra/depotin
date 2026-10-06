@@ -88,9 +88,10 @@ type Item struct {
 }
 
 func (s *Service) List(ctx context.Context, depot sqlc.Depot) ([]Item, error) {
-	today := order.DateIn(s.clock.Now(), order.DepotLocation(depot))
+	now := s.clock.Now()
+	today := order.DateIn(now, order.DepotLocation(depot))
 	rows, err := s.q.ListReminders(ctx, sqlc.ListRemindersParams{
-		DepotID: depot.ID, Limit: listLimit, Statuses: []string{StatusQueued, StatusSent}, FromDate: today.AddDate(0, 0, -recentDays),
+		DepotID: depot.ID, Limit: listLimit, Statuses: []string{StatusQueued, StatusSent}, FromDate: today.AddDate(0, 0, -recentDays), Now: now,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("daftar pengingat: %w", err)

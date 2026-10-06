@@ -174,3 +174,13 @@ Diukur dengan `go test -race -coverpkg=./internal/... ./...` termasuk tes HTTP d
 | internal/reminder | 80,3% |
 
 Tambahan: batas pesanan publik per IP dan per nomor juga dilonggarkan menjadi 100 pada `APP_ENV=development` dengan alasan yang sama. Tes HTTP di `cmd/api` menyusun aplikasi tanpa pelonggaran sehingga tetap memverifikasi batas asli (5 per 10 menit per IP, 3 per jam per nomor, 3 pendaftaran per jam).
+
+## 2026-10-06: Koneksi SSE terbaru menggantikan yang tertua
+
+Konteks: SPEC 8.2 membatasi 3 koneksi serentak per pengguna. Setiap navigasi di dasbor membuka koneksi baru, dan koneksi lama baru terdeteksi putus pada detak jantung berikutnya (20 detik), sehingga muat ulang beberapa kali dalam 20 detik membuat koneksi baru ditolak dan klien jatuh ke mode berkala.
+
+Pilihan: batas 3 tetap, tetapi saat penuh hub memutus koneksi tertua milik pengguna itu dan menerima yang baru. Tab yang masih hidup menyambung ulang sendiri.
+
+## 2026-10-06: Urutan antrean pengingat
+
+Antrean diurutkan dari pelanggan yang perkiraan habisnya paling dekat dengan hari ini (selisih absolut terkecil), bukan dari yang paling lama lewat. Pelanggan yang sudah lama lewat tetap masuk antrean, tetapi muncul di bawah, karena mereka juga tampil di filter Berisiko.

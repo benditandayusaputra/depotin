@@ -70,7 +70,9 @@ async function call<T>(
     headers: { ...HEADERS, 'idempotency-key': crypto.randomUUID() }
   });
   if (!response.ok()) {
-    throw new Error(`${method.toUpperCase()} ${path}: ${response.status()} ${await response.text()}`);
+    throw new Error(
+      `${method.toUpperCase()} ${path}: ${response.status()} ${await response.text()}`
+    );
   }
   return ((await response.json()) as Envelope<T>).data;
 }
@@ -189,7 +191,9 @@ test('alur A: pengingat, pesan dari link pribadi, antar oleh kurir, konversi ter
     await expect(page.getByRole('heading', { level: 1, name: 'Pesanan' })).toBeVisible();
     await page.getByRole('link', { name: `Buka pesanan ${code}` }).click();
     await expect(page.getByRole('heading', { level: 1, name: code })).toBeVisible();
-    await expect(page.locator('header').filter({ hasText: code }).getByText('Pengingat')).toBeVisible();
+    await expect(
+      page.locator('header').filter({ hasText: code }).getByText('Pengingat')
+    ).toBeVisible();
     const confirmButton = page.getByRole('button', { name: 'Konfirmasi' });
     if (await confirmButton.isVisible()) await confirmButton.click();
     await page.getByRole('button', { name: 'Tugaskan kurir' }).click();

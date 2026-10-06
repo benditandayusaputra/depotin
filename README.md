@@ -8,7 +8,11 @@ Dokumen: [PRD](docs/PRD.md), [spesifikasi teknis](docs/SPEC.md), [arsitektur](do
 
 ## Tangkapan layar
 
-Tangkapan layar ada di folder `docs/screenshots/` setelah tahap antarmuka selesai: halaman Pengingat, link pribadi pelanggan, papan pesanan, halaman kurir.
+| Pengingat galon hampir habis, satu ketukan kirim WA | Link pribadi pelanggan, pesan ulang tanpa mengetik |
+| --- | --- |
+| ![Halaman Pengingat](docs/screenshots/pengingat-360.png) | ![Link pribadi pelanggan](docs/screenshots/pribadi-360.png) |
+| **Papan pesanan pemilik, status berubah langsung lewat SSE** | **Halaman kurir, antrean hari ini dengan tombol Berangkat dan Selesai** |
+| ![Papan pesanan](docs/screenshots/pesanan-1280.png) | ![Halaman kurir](docs/screenshots/kurir-360.png) |
 
 ## Arsitektur singkat
 
