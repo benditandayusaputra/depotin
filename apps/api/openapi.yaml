@@ -459,8 +459,176 @@ paths:
                         format: date
         "404":
           $ref: "#/components/responses/Error"
+  /orders:
+    get:
+      operationId: listOrders
+      summary: Daftar pesanan depot
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: courier_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Daftar pesanan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderListResponse"
+    post:
+      operationId: createOrder
+      summary: Membuat pesanan atas nama pelanggan
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreate"
+      responses:
+        "201":
+          description: Pesanan dibuat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "200":
+          description: Pesanan yang sama sudah dibuat sebelumnya dengan Idempotency-Key ini
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "422":
+          $ref: "#/components/responses/Error"
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      summary: Rincian pesanan
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Pesanan, pemilik menerima Order dan kurir menerima CourierOrder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+  /orders/{id}/confirm:
+    post:
+      operationId: confirmOrder
+      summary: Mengonfirmasi pesanan menunggu
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          $ref: "#/components/responses/Order"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /orders/{id}/assign:
+    post:
+      operationId: assignCourier
+      summary: Menugaskan kurir
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [courier_id]
+              properties:
+                courier_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          $ref: "#/components/responses/Order"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /orders/{id}/dispatch:
+    post:
+      operationId: dispatchOrder
+      summary: Kurir berangkat
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          $ref: "#/components/responses/Order"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /orders/{id}/cancel:
+    post:
+      operationId: cancelOrder
+      summary: Membatalkan pesanan dengan alasan
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 3
+                  maxLength: 200
+      responses:
+        "200":
+          $ref: "#/components/responses/Order"
+        "409":
+          $ref: "#/components/responses/Error"
+  /orders/{id}/mark-paid:
+    post:
+      operationId: markOrderPaid
+      summary: Menandai pesanan lunas
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_method:
+                  $ref: "#/components/schemas/PaymentMethod"
+      responses:
+        "200":
+          $ref: "#/components/responses/Order"
+        "409":
+          $ref: "#/components/responses/Error"
 components:
   parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+        maxLength: 100
     Cursor:
       name: cursor
       in: query
@@ -481,6 +649,12 @@ components:
         type: string
         format: uuid
   responses:
+    Order:
+      description: Pesanan
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OrderResponse"
     Error:
       description: Galat baku
       content:
@@ -944,6 +1118,287 @@ components:
             wa_url:
               type: string
               format: uri
+    OrderStatus:
+      type: string
+      enum: [pending, confirmed, on_delivery, delivered, cancelled]
+    OrderSource:
+      type: string
+      enum: [public, link, reminder, owner, courier]
+    Fulfilment:
+      type: string
+      enum: [delivery, pickup]
+    PaymentMethod:
+      type: string
+      enum: [cash, transfer, qris]
+    OrderItem:
+      type: object
+      required: [product_id, product_name, product_kind, unit_price, qty, line_total]
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        product_name:
+          type: string
+        product_kind:
+          $ref: "#/components/schemas/ProductKind"
+        unit_price:
+          type: integer
+        qty:
+          type: integer
+        line_total:
+          type: integer
+    Order:
+      type: object
+      required:
+        - id
+        - code
+        - source
+        - status
+        - fulfilment
+        - scheduled_date
+        - customer_id
+        - delivery_name
+        - delivery_phone
+        - delivery_address
+        - delivery_note
+        - note
+        - refill_qty
+        - free_qty
+        - subtotal
+        - delivery_fee
+        - discount
+        - total
+        - payment_method
+        - payment_status
+        - paid_at
+        - courier_id
+        - courier_name
+        - gallons_returned
+        - reminder_id
+        - items
+        - created_at
+        - confirmed_at
+        - dispatched_at
+        - delivered_at
+        - cancelled_at
+        - cancel_reason
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        source:
+          $ref: "#/components/schemas/OrderSource"
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        fulfilment:
+          $ref: "#/components/schemas/Fulfilment"
+        scheduled_date:
+          type: string
+          format: date
+        customer_id:
+          type: string
+          format: uuid
+        delivery_name:
+          type: string
+        delivery_phone:
+          type: string
+        delivery_address:
+          type: string
+        delivery_note:
+          type: string
+        note:
+          type: string
+        refill_qty:
+          type: integer
+        free_qty:
+          type: integer
+        subtotal:
+          type: integer
+        delivery_fee:
+          type: integer
+        discount:
+          type: integer
+        total:
+          type: integer
+        payment_method:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentMethod"
+            - type: "null"
+        payment_status:
+          type: string
+          enum: [unpaid, paid]
+        paid_at:
+          type: [string, "null"]
+          format: date-time
+        courier_id:
+          type: [string, "null"]
+          format: uuid
+        courier_name:
+          type: [string, "null"]
+        gallons_returned:
+          type: [integer, "null"]
+        reminder_id:
+          type: [string, "null"]
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        created_at:
+          type: string
+          format: date-time
+        confirmed_at:
+          type: [string, "null"]
+          format: date-time
+        dispatched_at:
+          type: [string, "null"]
+          format: date-time
+        delivered_at:
+          type: [string, "null"]
+          format: date-time
+        cancelled_at:
+          type: [string, "null"]
+          format: date-time
+        cancel_reason:
+          type: [string, "null"]
+    CourierOrder:
+      type: object
+      required:
+        - id
+        - code
+        - status
+        - fulfilment
+        - scheduled_date
+        - customer_id
+        - delivery_name
+        - delivery_phone
+        - delivery_address
+        - delivery_note
+        - note
+        - refill_qty
+        - free_qty
+        - total
+        - payment_status
+        - payment_method
+        - gallons_returned
+        - items
+        - lat
+        - lng
+        - area
+        - loan_balance
+        - dispatched_at
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        fulfilment:
+          $ref: "#/components/schemas/Fulfilment"
+        scheduled_date:
+          type: string
+          format: date
+        customer_id:
+          type: string
+          format: uuid
+        delivery_name:
+          type: string
+        delivery_phone:
+          type: string
+        delivery_address:
+          type: string
+        delivery_note:
+          type: string
+        note:
+          type: string
+        refill_qty:
+          type: integer
+        free_qty:
+          type: integer
+        total:
+          type: integer
+        payment_status:
+          type: string
+          enum: [unpaid, paid]
+        payment_method:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentMethod"
+            - type: "null"
+        gallons_returned:
+          type: [integer, "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        lat:
+          type: [number, "null"]
+        lng:
+          type: [number, "null"]
+        area:
+          type: string
+        loan_balance:
+          type: integer
+        dispatched_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    OrderResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Order"
+    OrderListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        meta:
+          $ref: "#/components/schemas/Cursor"
+    OrderCreate:
+      type: object
+      required: [customer_id]
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required: [product_id, qty]
+            properties:
+              product_id:
+                type: string
+                format: uuid
+              qty:
+                type: integer
+                minimum: 1
+                maximum: 50
+        refill_qty:
+          type: integer
+          minimum: 1
+          maximum: 50
+          description: Dipakai bila items kosong, bawaan jumlah biasa pelanggan
+        fulfilment:
+          $ref: "#/components/schemas/Fulfilment"
+        scheduled_date:
+          type: string
+          format: date
+        note:
+          type: string
+          maxLength: 300
     SessionResponse:
       type: object
       required: [data]

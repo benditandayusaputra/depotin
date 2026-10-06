@@ -332,6 +332,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daftar pesanan depot */
+        get: operations["listOrders"];
+        put?: never;
+        /** Membuat pesanan atas nama pelanggan */
+        post: operations["createOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rincian pesanan */
+        get: operations["getOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mengonfirmasi pesanan menunggu */
+        post: operations["confirmOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menugaskan kurir */
+        post: operations["assignCourier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/dispatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kurir berangkat */
+        post: operations["dispatchOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Membatalkan pesanan dengan alasan */
+        post: operations["cancelOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/mark-paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menandai pesanan lunas */
+        post: operations["markOrderPaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -542,6 +662,123 @@ export interface components {
                 wa_url: string;
             };
         };
+        /** @enum {string} */
+        OrderStatus: "pending" | "confirmed" | "on_delivery" | "delivered" | "cancelled";
+        /** @enum {string} */
+        OrderSource: "public" | "link" | "reminder" | "owner" | "courier";
+        /** @enum {string} */
+        Fulfilment: "delivery" | "pickup";
+        /** @enum {string} */
+        PaymentMethod: "cash" | "transfer" | "qris";
+        OrderItem: {
+            /** Format: uuid */
+            product_id: string;
+            product_name: string;
+            product_kind: components["schemas"]["ProductKind"];
+            unit_price: number;
+            qty: number;
+            line_total: number;
+        };
+        Order: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            source: components["schemas"]["OrderSource"];
+            status: components["schemas"]["OrderStatus"];
+            fulfilment: components["schemas"]["Fulfilment"];
+            /** Format: date */
+            scheduled_date: string;
+            /** Format: uuid */
+            customer_id: string;
+            delivery_name: string;
+            delivery_phone: string;
+            delivery_address: string;
+            delivery_note: string;
+            note: string;
+            refill_qty: number;
+            free_qty: number;
+            subtotal: number;
+            delivery_fee: number;
+            discount: number;
+            total: number;
+            payment_method: components["schemas"]["PaymentMethod"] | null;
+            /** @enum {string} */
+            payment_status: "unpaid" | "paid";
+            /** Format: date-time */
+            paid_at: string | null;
+            /** Format: uuid */
+            courier_id: string | null;
+            courier_name: string | null;
+            gallons_returned: number | null;
+            /** Format: uuid */
+            reminder_id: string | null;
+            items: components["schemas"]["OrderItem"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            confirmed_at: string | null;
+            /** Format: date-time */
+            dispatched_at: string | null;
+            /** Format: date-time */
+            delivered_at: string | null;
+            /** Format: date-time */
+            cancelled_at: string | null;
+            cancel_reason: string | null;
+        };
+        CourierOrder: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            status: components["schemas"]["OrderStatus"];
+            fulfilment: components["schemas"]["Fulfilment"];
+            /** Format: date */
+            scheduled_date: string;
+            /** Format: uuid */
+            customer_id: string;
+            delivery_name: string;
+            delivery_phone: string;
+            delivery_address: string;
+            delivery_note: string;
+            note: string;
+            refill_qty: number;
+            free_qty: number;
+            total: number;
+            /** @enum {string} */
+            payment_status: "unpaid" | "paid";
+            payment_method: components["schemas"]["PaymentMethod"] | null;
+            gallons_returned: number | null;
+            items: components["schemas"]["OrderItem"][];
+            lat: number | null;
+            lng: number | null;
+            area: string;
+            loan_balance: number;
+            /** Format: date-time */
+            dispatched_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        OrderResponse: {
+            data: components["schemas"]["Order"];
+        };
+        OrderListResponse: {
+            data: components["schemas"]["Order"][];
+            meta: components["schemas"]["Cursor"];
+        };
+        OrderCreate: {
+            /** Format: uuid */
+            customer_id: string;
+            items?: {
+                /** Format: uuid */
+                product_id: string;
+                qty: number;
+            }[];
+            /** @description Dipakai bila items kosong, bawaan jumlah biasa pelanggan */
+            refill_qty?: number;
+            fulfilment?: components["schemas"]["Fulfilment"];
+            /** Format: date */
+            scheduled_date?: string;
+            note?: string;
+        };
         SessionResponse: {
             data: {
                 user: components["schemas"]["User"];
@@ -550,6 +787,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description Pesanan */
+        Order: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["OrderResponse"];
+            };
+        };
         /** @description Galat baku */
         Error: {
             headers: {
@@ -561,6 +807,7 @@ export interface components {
         };
     };
     parameters: {
+        IdempotencyKey: string;
         Cursor: string;
         Limit: number;
         Id: string;
@@ -1161,6 +1408,190 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+        };
+    };
+    listOrders: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["OrderStatus"];
+                date?: string;
+                courier_id?: string;
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daftar pesanan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderListResponse"];
+                };
+            };
+        };
+    };
+    createOrder: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderCreate"];
+            };
+        };
+        responses: {
+            /** @description Pesanan yang sama sudah dibuat sebelumnya dengan Idempotency-Key ini */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResponse"];
+                };
+            };
+            /** @description Pesanan dibuat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResponse"];
+                };
+            };
+            422: components["responses"]["Error"];
+        };
+    };
+    getOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pesanan, pemilik menerima Order dan kurir menerima CourierOrder */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResponse"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    confirmOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Order"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    assignCourier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    courier_id: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Order"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    dispatchOrder: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Order"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    cancelOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Order"];
+            409: components["responses"]["Error"];
+        };
+    };
+    markOrderPaid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    payment_method?: components["schemas"]["PaymentMethod"];
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Order"];
+            409: components["responses"]["Error"];
         };
     };
 }
