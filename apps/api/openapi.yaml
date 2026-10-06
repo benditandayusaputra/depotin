@@ -925,6 +925,115 @@ paths:
           $ref: "#/components/responses/Error"
         "422":
           $ref: "#/components/responses/Error"
+  /reminders:
+    get:
+      operationId: listReminders
+      summary: Antrean pengingat hari ini, disusun ulang secara idempoten saat dibuka
+      responses:
+        "200":
+          description: Pengingat berstatus queued dan sent dari 3 hari terakhir
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Reminder"
+  /reminders/{id}/send:
+    post:
+      operationId: sendReminder
+      summary: Menandai terkirim dan mengembalikan link WhatsApp berisi pesan
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Pengingat dan link
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [reminder, link, wa_url]
+                    properties:
+                      reminder:
+                        $ref: "#/components/schemas/Reminder"
+                      link:
+                        type: string
+                        format: uri
+                      wa_url:
+                        type: string
+                        format: uri
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /reminders/{id}/skip:
+    post:
+      operationId: skipReminder
+      summary: Melewati pengingat untuk hari ini
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Pengingat dilewati
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Reminder"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /stream/tickets:
+    post:
+      operationId: createStreamTicket
+      summary: Tiket sekali pakai berumur 30 detik untuk membuka aliran SSE langsung ke API
+      responses:
+        "200":
+          description: Tiket
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [ticket, expires_in]
+                    properties:
+                      ticket:
+                        type: string
+                      expires_in:
+                        type: integer
+        "401":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+  /stream:
+    get:
+      operationId: stream
+      summary: Aliran SSE, dibuka langsung ke API dengan parameter ticket, tanpa edge key
+      parameters:
+        - name: ticket
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: text/event-stream dengan peristiwa ready, order.created, order.updated, reminder.queued
+        "401":
+          $ref: "#/components/responses/Error"
 components:
   parameters:
     Token:
@@ -1941,6 +2050,30 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackedOrder"
+    Reminder:
+      type: object
+      required: [id, due_date, predicted_empty_at, status, sent_at, order_id, customer]
+      properties:
+        id:
+          type: string
+          format: uuid
+        due_date:
+          type: string
+          format: date
+        predicted_empty_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [queued, sent, ordered, skipped, expired]
+        sent_at:
+          type: [string, "null"]
+          format: date-time
+        order_id:
+          type: [string, "null"]
+          format: uuid
+        customer:
+          $ref: "#/components/schemas/Customer"
     SessionResponse:
       type: object
       required: [data]

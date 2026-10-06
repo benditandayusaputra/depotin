@@ -14,7 +14,7 @@ WHERE depot_id = $1 AND status = 'queued' AND due_date < sqlc.arg('before_date')
 
 -- name: QueueReminders :execrows
 INSERT INTO reminders (id, depot_id, customer_id, due_date, predicted_empty_at, status)
-SELECT gen_random_uuid(), c.depot_id, c.id, sqlc.arg('due_date')::date, c.predicted_empty_at, 'queued'
+SELECT uuidv7(), c.depot_id, c.id, sqlc.arg('due_date')::date, c.predicted_empty_at, 'queued'
 FROM customers c
 WHERE c.depot_id = $1 AND c.is_active AND c.is_verified
   AND c.predicted_empty_at IS NOT NULL

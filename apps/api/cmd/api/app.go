@@ -22,6 +22,8 @@ import (
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/ratelimit"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/product"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/public"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/reminder"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/stream"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/user"
 )
 
@@ -84,13 +86,17 @@ func newApp(d dependencies) (*fiber.App, error) {
 	v1.Use(auth.Middleware(tokens, cookies, d.clock))
 	v1.Get("/readyz", readyz(d.pool))
 
+	hub := stream.NewHub()
+	publisher := stream.NewPublisher(hub)
+	links := customer.NewLinks(d.cfg.WebOrigin, sealer)
+
 	authSvc := auth.NewService(d.pool, d.clock, tokens)
 	auth.NewHandler(authSvc, cookies, d.clock, limiter).Register(v1.Group("/auth"))
 
 	ownerOnly := httpx.RequireRole(auth.RoleOwner)
 	user.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
-	customer.NewHandler(d.pool, d.clock, customer.NewLinks(d.cfg.WebOrigin, sealer)).Register(v1, ownerOnly)
-	orderSvc := order.NewService(d.pool, d.clock, nil)
+	customer.NewHandler(d.pool, d.clock, links).Register(v1, ownerOnly)
+	orderSvc := order.NewService(d.pool, d.clock, publisher)
 	orderHandler := order.NewHandler(orderSvc)
 	orderHandler.Register(v1, ownerOnly, auth.RequireLogin())
 	orderHandler.RegisterCourier(v1, httpx.RequireRole(auth.RoleCourier))
@@ -99,6 +105,13 @@ func newApp(d dependencies) (*fiber.App, error) {
 	publicHandler.Register(v1)
 	depot.NewHandler(d.pool, publicHandler.InvalidateDepot).Register(v1, ownerOnly)
 	product.NewHandler(d.pool, publicHandler.InvalidateDepotByID).Register(v1, ownerOnly)
+	reminderSvc := reminder.NewService(d.pool, d.clock, links, publisher)
+	reminder.NewHandler(reminderSvc).Register(v1, ownerOnly)
+	stream.NewHandler(hub, stream.NewTicketStore(d.clock), limiter, d.cfg.WebOrigin).Register(v1, auth.RequireLogin())
+	app.Hooks().OnPreShutdown(func() error {
+		hub.CloseAll()
+		return nil
+	})
 
 	return app, nil
 }

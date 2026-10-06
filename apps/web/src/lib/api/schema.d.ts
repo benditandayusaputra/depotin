@@ -673,6 +673,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Antrean pengingat hari ini, disusun ulang secara idempoten saat dibuka */
+        get: operations["listReminders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reminders/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menandai terkirim dan mengembalikan link WhatsApp berisi pesan */
+        post: operations["sendReminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reminders/{id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Melewati pengingat untuk hari ini */
+        post: operations["skipReminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stream/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tiket sekali pakai berumur 30 detik untuk membuka aliran SSE langsung ke API */
+        post: operations["createStreamTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aliran SSE, dibuka langsung ke API dengan parameter ticket, tanpa edge key */
+        get: operations["stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1091,6 +1176,21 @@ export interface components {
             };
             active_orders: components["schemas"]["TrackedOrder"][];
             recent_orders: components["schemas"]["TrackedOrder"][];
+        };
+        Reminder: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            due_date: string;
+            /** Format: date-time */
+            predicted_empty_at: string;
+            /** @enum {string} */
+            status: "queued" | "sent" | "ordered" | "skipped" | "expired";
+            /** Format: date-time */
+            sent_at: string | null;
+            /** Format: uuid */
+            order_id: string | null;
+            customer: components["schemas"]["Customer"];
         };
         SessionResponse: {
             data: {
@@ -2268,6 +2368,134 @@ export interface operations {
             404: components["responses"]["Error"];
             409: components["responses"]["Error"];
             422: components["responses"]["Error"];
+        };
+    };
+    listReminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pengingat berstatus queued dan sent dari 3 hari terakhir */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Reminder"][];
+                    };
+                };
+            };
+        };
+    };
+    sendReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pengingat dan link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            reminder: components["schemas"]["Reminder"];
+                            /** Format: uri */
+                            link: string;
+                            /** Format: uri */
+                            wa_url: string;
+                        };
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    skipReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pengingat dilewati */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Reminder"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    createStreamTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tiket */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            ticket: string;
+                            expires_in: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    stream: {
+        parameters: {
+            query: {
+                ticket: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description text/event-stream dengan peristiwa ready, order.created, order.updated, reminder.queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Error"];
         };
     };
 }
