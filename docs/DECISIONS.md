@@ -113,3 +113,15 @@ Pilihan: Lewati menandai pengingat `skipped` dan pelanggan bisa muncul lagi beso
 Konteks: SPEC 10.3 menyebut kurir tidak menerima data omzet, sedangkan PRD F-06 menyebut kurir melihat total yang harus ditagih.
 
 Pilihan: tampilan kurir (`CourierOrder`) memuat `total`, `refill_qty`, dan `free_qty`, tetapi tidak memuat `subtotal`, `discount`, `delivery_fee`, maupun data agregat omzet. Endpoint dasbor dan laporan ditolak untuk kurir.
+
+## 2026-10-06: Hasil EXPLAIN pada data contoh
+
+Konteks: Tahap 11 meminta memastikan kueri papan pesanan, antrean kurir, dan antrean pengingat memakai indeks.
+
+Hasil: pada data contoh perencana memilih pemindaian berurutan karena setiap tabel hanya beberapa halaman (waktu eksekusi di bawah 0,2 ms). Dengan `enable_seqscan = off`, papan pesanan memakai `orders_board_idx`, antrean kurir memakai `orders_courier_queue_idx`, dan antrean pengingat memakai `customers_reminder_idx`, `orders_customer_active_idx`, serta `reminders_depot_status_due_idx`. Tidak ada kueri yang membutuhkan indeks tambahan.
+
+## 2026-10-06: govulncheck bersih setelah mengunci toolchain
+
+Konteks: `govulncheck` melaporkan 20 kerentanan pustaka standar karena `go.mod` hanya menyebut `go 1.26.0`, sehingga toolchain 1.26.0 yang dipakai.
+
+Pilihan: menambahkan `toolchain go1.26.8` di `go.mod`. Setelah itu `govulncheck ./...` melaporkan nol kerentanan yang dipanggil kode. `npm audit --omit=dev` juga nol.
