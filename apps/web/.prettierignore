@@ -1,0 +1,6 @@
+.svelte-kit/
+build/
+node_modules/
+.vercel/
+package-lock.json
+src/lib/api/schema.d.ts

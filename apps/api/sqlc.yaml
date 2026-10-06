@@ -63,6 +63,16 @@ sql:
             go_type:
               type: float64
               pointer: true
+          - db_type: pg_catalog.bool
+            nullable: true
+            go_type:
+              type: bool
+              pointer: true
+          - db_type: pg_catalog.time
+            nullable: true
+            go_type:
+              type: string
+              pointer: true
           - db_type: jsonb
             go_type:
               type: "[]byte"

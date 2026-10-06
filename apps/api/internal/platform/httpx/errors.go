@@ -3,6 +3,7 @@ package httpx
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -87,4 +88,17 @@ func Internal(err error) *Error {
 
 func Unavailable(err error) *Error {
 	return &Error{Status: http.StatusServiceUnavailable, Code: CodeUnavailable, Message: "Layanan sedang tidak siap. Coba lagi sebentar.", cause: err}
+}
+
+func (e *Error) WithMessage(err error) *Error {
+	clone := *e
+	clone.Message = capitalize(err.Error()) + "."
+	return &clone
+}
+
+func capitalize(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }

@@ -119,3 +119,95 @@ func (q *Queries) GetDepotBySlug(ctx context.Context, slug string) (Depot, error
 	)
 	return i, err
 }
+
+const slugExists = `-- name: SlugExists :one
+SELECT EXISTS (SELECT 1 FROM depots WHERE slug = $1)
+`
+
+func (q *Queries) SlugExists(ctx context.Context, slug string) (bool, error) {
+	row := q.db.QueryRow(ctx, slugExists, slug)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const updateDepot = `-- name: UpdateDepot :one
+UPDATE depots
+SET name = COALESCE($2, name),
+    phone = COALESCE($3, phone),
+    address = COALESCE($4, address),
+    lat = COALESCE($5, lat),
+    lng = COALESCE($6, lng),
+    open_time = COALESCE($7::time, open_time),
+    close_time = COALESCE($8::time, close_time),
+    delivery_fee = COALESCE($9, delivery_fee),
+    is_accepting_orders = COALESCE($10, is_accepting_orders),
+    auto_confirm_known = COALESCE($11, auto_confirm_known),
+    loyalty_every = CASE WHEN $12::boolean THEN NULL ELSE COALESCE($13, loyalty_every) END,
+    reminder_lead_days = COALESCE($14, reminder_lead_days),
+    default_days_per_gallon = COALESCE($15, default_days_per_gallon),
+    updated_at = now()
+WHERE id = $1
+RETURNING id, name, slug, phone, address, lat, lng, timezone, open_time, close_time, delivery_fee, is_accepting_orders, auto_confirm_known, loyalty_every, reminder_lead_days, default_days_per_gallon, is_demo, created_at, updated_at
+`
+
+type UpdateDepotParams struct {
+	ID                   uuid.UUID
+	Name                 *string
+	Phone                *string
+	Address              *string
+	Lat                  *float64
+	Lng                  *float64
+	OpenTime             *string
+	CloseTime            *string
+	DeliveryFee          *int64
+	IsAcceptingOrders    *bool
+	AutoConfirmKnown     *bool
+	ClearLoyalty         bool
+	LoyaltyEvery         *int32
+	ReminderLeadDays     *int32
+	DefaultDaysPerGallon *float64
+}
+
+func (q *Queries) UpdateDepot(ctx context.Context, arg UpdateDepotParams) (Depot, error) {
+	row := q.db.QueryRow(ctx, updateDepot,
+		arg.ID,
+		arg.Name,
+		arg.Phone,
+		arg.Address,
+		arg.Lat,
+		arg.Lng,
+		arg.OpenTime,
+		arg.CloseTime,
+		arg.DeliveryFee,
+		arg.IsAcceptingOrders,
+		arg.AutoConfirmKnown,
+		arg.ClearLoyalty,
+		arg.LoyaltyEvery,
+		arg.ReminderLeadDays,
+		arg.DefaultDaysPerGallon,
+	)
+	var i Depot
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.Phone,
+		&i.Address,
+		&i.Lat,
+		&i.Lng,
+		&i.Timezone,
+		&i.OpenTime,
+		&i.CloseTime,
+		&i.DeliveryFee,
+		&i.IsAcceptingOrders,
+		&i.AutoConfirmKnown,
+		&i.LoyaltyEvery,
+		&i.ReminderLeadDays,
+		&i.DefaultDaysPerGallon,
+		&i.IsDemo,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

@@ -1,0 +1,122 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --color-accent-50: #eff8ff;
+  --color-accent-100: #dbeefe;
+  --color-accent-200: #bfe1fd;
+  --color-accent-300: #93cdfb;
+  --color-accent-400: #5fb1f6;
+  --color-accent-500: #3a92ee;
+  --color-accent-600: #2574dc;
+  --color-accent-700: #1d5ec4;
+  --color-accent-800: #1e4d9f;
+  --color-accent-900: #1e427d;
+
+  --color-neutral-50: #faf9f7;
+  --color-neutral-100: #f3f1ed;
+  --color-neutral-200: #e6e2db;
+  --color-neutral-300: #d3cec4;
+  --color-neutral-400: #a9a298;
+  --color-neutral-500: #7f786e;
+  --color-neutral-600: #655e55;
+  --color-neutral-700: #514b44;
+  --color-neutral-800: #37322d;
+  --color-neutral-900: #211e1b;
+
+  --color-status-pending: #b45309;
+  --color-status-pending-soft: #fef3c7;
+  --color-status-confirmed: #1d5ec4;
+  --color-status-confirmed-soft: #dbeefe;
+  --color-status-delivery: #6d28d9;
+  --color-status-delivery-soft: #ede9fe;
+  --color-status-done: #15803d;
+  --color-status-done-soft: #dcfce7;
+  --color-status-cancelled: #b91c1c;
+  --color-status-cancelled-soft: #fee2e2;
+
+  --color-bg: #faf9f7;
+  --color-surface: #ffffff;
+  --color-text: #211e1b;
+  --color-muted: #655e55;
+  --color-border: #e6e2db;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  --shadow-card: 0 1px 2px rgb(33 30 27 / 0.06), 0 4px 12px rgb(33 30 27 / 0.08);
+
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.2;
+  --text-num: 2.25rem;
+  --text-num--line-height: 1.1;
+  --text-num--font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #171412;
+    --color-surface: #211e1b;
+    --color-text: #f3f1ed;
+    --color-muted: #a9a298;
+    --color-border: #37322d;
+    --color-status-pending: #fbbf24;
+    --color-status-pending-soft: #3f2a08;
+    --color-status-confirmed: #93cdfb;
+    --color-status-confirmed-soft: #142a4d;
+    --color-status-delivery: #c4b5fd;
+    --color-status-delivery-soft: #2a1b4d;
+    --color-status-done: #86efac;
+    --color-status-done-soft: #0f3d22;
+    --color-status-cancelled: #fca5a5;
+    --color-status-cancelled-soft: #4a1414;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.5);
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #app {
+    display: contents;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-accent-500);
+    outline-offset: 2px;
+  }
+}
+
+@utility tap {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+@utility focus-ring {
+  &:focus-visible {
+    outline: 3px solid var(--color-accent-500);
+    outline-offset: 2px;
+  }
+}

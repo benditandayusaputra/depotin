@@ -71,3 +71,19 @@ Konteks: SPEC 11.2 meminta koneksi langsung Neon. Pengguna memberikan string kon
 Pilihan: untuk lingkungan yang disediakan pengguna, `DATABASE_URL` dan `MIGRATE_DATABASE_URL` memakai string yang diberikan. Pemisahan peran dan koneksi langsung dicatat sebagai langkah pengguna di `deploy/README.md`.
 
 Alasan: akses ke konsol Neon hanya dimiliki pengguna. Pooler Neon (PgBouncer 1.21 ke atas) mendukung prepared statement tingkat protokol, sehingga mode bawaan pgx tetap bekerja.
+
+## 2026-10-06: Font sistem, bukan berkas font
+
+Konteks: SPEC 11.4 menyebut font disajikan sendiri dengan subset Latin dan dua ketebalan.
+
+Pilihan: tumpukan font sistem (`system-ui, -apple-system, Segoe UI, Roboto`) tanpa berkas font.
+
+Alasan: nol permintaan jaringan dan nol byte tambahan untuk HP kelas bawah, tidak ada skrip atau aset pihak ketiga, dan tidak ada lisensi font yang perlu dicatat. Font sistem Android (Roboto) dan iOS sudah terbaca baik untuk angka besar.
+
+## 2026-10-06: style-src mengizinkan unsafe-inline
+
+Konteks: SPEC 10.5 meminta CSP mode hash. SvelteKit 2 merender pengumum navigasi (`#svelte-announcer`) dengan atribut `style` sebaris dari templat internalnya. Dengan `style-src 'self'`, Firefox memblokirnya sehingga teks judul halaman tampil di bawah halaman setelah navigasi klien.
+
+Pilihan: `style-src 'self' 'unsafe-inline'`. Skrip tetap ketat dengan hash.
+
+Alasan: alternatifnya adalah menyematkan hash dari string internal SvelteKit yang bisa berubah saat pembaruan minor. Risiko `unsafe-inline` pada gaya jauh lebih kecil daripada pada skrip, dan tidak ada `{@html}` di aplikasi.
