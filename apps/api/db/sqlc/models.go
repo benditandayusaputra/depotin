@@ -5,6 +5,7 @@
 package sqlc
 
 import (
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ type AuditLog struct {
 	EntityType string
 	EntityID   *uuid.UUID
 	Meta       []byte
-	Ip         *string
+	Ip         *netip.Prefix
 	CreatedAt  time.Time
 }
 
@@ -187,7 +188,7 @@ type Session struct {
 	RotatedAt *time.Time
 	RevokedAt *time.Time
 	UserAgent string
-	Ip        *string
+	Ip        *netip.Prefix
 	CreatedAt time.Time
 }
 

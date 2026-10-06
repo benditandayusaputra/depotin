@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,7 +42,7 @@ type CreateSessionParams struct {
 	TokenHash []byte
 	ExpiresAt time.Time
 	UserAgent string
-	Ip        *string
+	Ip        *netip.Prefix
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {

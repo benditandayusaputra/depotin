@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/netip"
 
 	"github.com/google/uuid"
 
 	"github.com/benditandayusaputra/depotin/apps/api/db/sqlc"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/db"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/idgen"
 )
 
@@ -45,11 +45,6 @@ func Record(ctx context.Context, q *sqlc.Queries, e Entry) error {
 		}
 		meta = encoded
 	}
-	var ip *string
-	if addr, err := netip.ParseAddr(e.IP); err == nil {
-		s := addr.String()
-		ip = &s
-	}
 	if err := q.InsertAuditLog(ctx, sqlc.InsertAuditLogParams{
 		ID:         idgen.NewID(),
 		DepotID:    e.DepotID,
@@ -58,7 +53,7 @@ func Record(ctx context.Context, q *sqlc.Queries, e Entry) error {
 		EntityType: e.EntityType,
 		EntityID:   e.EntityID,
 		Meta:       meta,
-		Ip:         ip,
+		Ip:         db.InetFromIP(e.IP),
 	}); err != nil {
 		return fmt.Errorf("simpan audit: %w", err)
 	}

@@ -171,7 +171,8 @@ func (s *Service) Login(ctx context.Context, phoneNumber, password string, meta 
 }
 
 func (s *Service) recordFailure(ctx context.Context, user sqlc.User, now time.Time, meta RequestMeta) error {
-	return db.WithTx(ctx, s.pool, func(tx pgx.Tx) error {
+	locked := false
+	err := db.WithTx(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
 		result, err := q.RecordLoginFailure(ctx, sqlc.RecordLoginFailureParams{
 			ID: user.ID, MaxFailures: MaxFailedLogins, LockUntil: now.Add(LockDuration),
@@ -182,11 +183,16 @@ func (s *Service) recordFailure(ctx context.Context, user sqlc.User, now time.Ti
 		if err := audit.Record(ctx, q, audit.Entry{DepotID: user.DepotID, UserID: &user.ID, Action: audit.ActionLoginFailed, EntityType: "user", EntityID: &user.ID, Meta: map[string]any{"failed_count": result.FailedLoginCount}, IP: meta.IP}); err != nil {
 			return err
 		}
-		if result.LockedUntil != nil && result.LockedUntil.After(now) {
-			return ErrAccountLocked
-		}
-		return ErrInvalidCredentials
+		locked = result.LockedUntil != nil && result.LockedUntil.After(now)
+		return nil
 	})
+	if err != nil {
+		return err
+	}
+	if locked {
+		return ErrAccountLocked
+	}
+	return ErrInvalidCredentials
 }
 
 func (s *Service) startSession(ctx context.Context, q *sqlc.Queries, user sqlc.User, familyID uuid.UUID, meta RequestMeta) (Tokens, error) {
@@ -199,13 +205,9 @@ func (s *Service) startSession(ctx context.Context, q *sqlc.Queries, user sqlc.U
 	if len(ua) > maxUserAgentChars {
 		ua = ua[:maxUserAgentChars]
 	}
-	var ip *string
-	if meta.IP != "" {
-		ip = &meta.IP
-	}
 	if _, err := q.CreateSession(ctx, sqlc.CreateSessionParams{
 		ID: idgen.NewID(), UserID: user.ID, FamilyID: familyID, TokenHash: crypto.HashToken(refresh),
-		ExpiresAt: now.Add(RefreshTokenTTL), UserAgent: ua, Ip: ip,
+		ExpiresAt: now.Add(RefreshTokenTTL), UserAgent: ua, Ip: db.InetFromIP(meta.IP),
 	}); err != nil {
 		return Tokens{}, fmt.Errorf("buat sesi: %w", err)
 	}

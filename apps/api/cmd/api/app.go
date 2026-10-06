@@ -10,8 +10,13 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/benditandayusaputra/depotin/apps/api/internal/auth"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/config"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/depot"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/clock"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/httpx"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/ratelimit"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/user"
 )
 
 const (
@@ -20,18 +25,27 @@ const (
 	healthPath     = "/healthz"
 )
 
+var globalRule = ratelimit.Rule{Limit: 300, Window: time.Minute}
+
 type dependencies struct {
-	cfg  config.Config
-	log  *slog.Logger
-	pool *pgxpool.Pool
+	cfg   config.Config
+	log   *slog.Logger
+	pool  *pgxpool.Pool
+	clock clock.Clock
 }
 
 func newApp(d dependencies) *fiber.App {
+	if d.clock == nil {
+		d.clock = clock.System{}
+	}
+	limiter := ratelimit.New(d.clock)
+	tokens := auth.NewTokenIssuer(d.cfg.JWTSecret)
+	cookies := auth.NewCookieWriter(d.cfg.CookieSecure)
+
 	app := fiber.New(fiber.Config{
 		AppName:          "depotin-api",
 		BodyLimit:        httpx.MaxBodyBytes,
 		ReadTimeout:      15 * time.Second,
-		WriteTimeout:     0,
 		IdleTimeout:      60 * time.Second,
 		JSONEncoder:      json.Marshal,
 		JSONDecoder:      json.Unmarshal,
@@ -39,7 +53,6 @@ func newApp(d dependencies) *fiber.App {
 		ProxyHeader:      fiber.HeaderXForwardedFor,
 		TrustProxy:       true,
 		TrustProxyConfig: fiber.TrustProxyConfig{Private: true, Loopback: true},
-		StrictRouting:    false,
 		CaseSensitive:    true,
 	})
 
@@ -50,13 +63,23 @@ func newApp(d dependencies) *fiber.App {
 		path := c.Path()
 		return path == healthPath || (path == streamPath && c.Method() == http.MethodGet)
 	}))
+	app.Use(httpx.RateLimitByIP(limiter, globalRule, "global"))
 
 	app.Get(healthPath, func(c fiber.Ctx) error {
 		return httpx.OK(c, fiber.Map{"status": "ok"})
 	})
 
 	v1 := app.Group("/api/v1")
+	v1.Use(httpx.RequireOrigin(d.cfg.WebOrigin))
+	v1.Use(auth.Middleware(tokens, cookies, d.clock))
 	v1.Get("/readyz", readyz(d.pool))
+
+	authSvc := auth.NewService(d.pool, d.clock, tokens)
+	auth.NewHandler(authSvc, cookies, d.clock, limiter).Register(v1.Group("/auth"))
+
+	ownerOnly := httpx.RequireRole(auth.RoleOwner)
+	depot.NewHandler(d.pool, nil).Register(v1, ownerOnly)
+	user.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
 
 	return app
 }

@@ -27,9 +27,9 @@ func NewHandler(pool *pgxpool.Pool, onChanged func(depotID string)) *Handler {
 	return &Handler{q: sqlc.New(pool), onChanged: onChanged}
 }
 
-func (h *Handler) Register(r fiber.Router) {
-	r.Get("/depot", h.get)
-	r.Patch("/depot", h.update)
+func (h *Handler) Register(r fiber.Router, guard fiber.Handler) {
+	r.Get("/depot", guard, h.get)
+	r.Patch("/depot", guard, h.update)
 }
 
 func (h *Handler) get(c fiber.Ctx) error {

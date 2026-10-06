@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,7 +26,7 @@ type InsertAuditLogParams struct {
 	EntityType string
 	EntityID   *uuid.UUID
 	Meta       []byte
-	Ip         *string
+	Ip         *netip.Prefix
 }
 
 func (q *Queries) InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) error {

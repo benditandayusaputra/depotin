@@ -23,7 +23,248 @@ paths:
                     $ref: "#/components/schemas/Readiness"
         "503":
           $ref: "#/components/responses/Error"
+  /auth/register:
+    post:
+      operationId: register
+      summary: Mendaftarkan depot baru beserta pemiliknya
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Depot dibuat dan sesi dipasang di cookie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "422":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+  /auth/login:
+    post:
+      operationId: login
+      summary: Masuk dengan nomor HP dan kata sandi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Berhasil masuk
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+  /auth/refresh:
+    post:
+      operationId: refreshSession
+      summary: Menukar token penyegar dengan sesi baru
+      responses:
+        "200":
+          description: Sesi diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Keluar dari perangkat ini
+      responses:
+        "200":
+          description: Keluar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagResponse"
+  /auth/logout-all:
+    post:
+      operationId: logoutAll
+      summary: Keluar dari semua perangkat
+      responses:
+        "200":
+          description: Keluar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+  /auth/me:
+    get:
+      operationId: me
+      summary: Pengguna dan depot yang sedang masuk
+      responses:
+        "200":
+          description: Sesi aktif
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+  /auth/password:
+    post:
+      operationId: changePassword
+      summary: Mengganti kata sandi sendiri
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Kata sandi diganti
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /depot:
+    get:
+      operationId: getDepot
+      summary: Profil depot pemilik
+      responses:
+        "200":
+          description: Depot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepotResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateDepot
+      summary: Mengubah pengaturan depot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepotUpdate"
+      responses:
+        "200":
+          description: Depot diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepotResponse"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users:
+    get:
+      operationId: listUsers
+      summary: Daftar pemilik dan kurir depot
+      responses:
+        "200":
+          description: Daftar pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+    post:
+      operationId: createCourier
+      summary: Menambah akun kurir
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCourierRequest"
+      responses:
+        "201":
+          description: Kurir dibuat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}:
+    patch:
+      operationId: updateUser
+      summary: Mengubah nama atau status aktif pengguna
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Pengguna diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/reset-password:
+    post:
+      operationId: resetUserPassword
+      summary: Menyetel ulang kata sandi kurir
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  minLength: 10
+                  maxLength: 128
+      responses:
+        "200":
+          description: Kata sandi disetel ulang
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagResponse"
+        "404":
+          $ref: "#/components/responses/Error"
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     Error:
       description: Galat baku
@@ -74,5 +315,210 @@ components:
       type: object
       properties:
         next_cursor:
+          type: [string, "null"]
+    FlagResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties:
+            type: boolean
+    RegisterRequest:
+      type: object
+      required: [depot_name, name, phone, password]
+      properties:
+        depot_name:
           type: string
-          nullable: true
+          minLength: 3
+          maxLength: 80
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        phone:
+          type: string
+        password:
+          type: string
+          minLength: 10
+          maxLength: 128
+    LoginRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        phone:
+          type: string
+        password:
+          type: string
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+          minLength: 10
+          maxLength: 128
+    Role:
+      type: string
+      enum: [owner, courier]
+    User:
+      type: object
+      required: [id, depot_id, role, name, phone, is_active, last_login_at, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        depot_id:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/Role"
+        name:
+          type: string
+        phone:
+          type: string
+        is_active:
+          type: boolean
+        last_login_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    UserResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/User"
+    CreateCourierRequest:
+      type: object
+      required: [name, phone, password]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        phone:
+          type: string
+        password:
+          type: string
+          minLength: 10
+          maxLength: 128
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        is_active:
+          type: boolean
+    Depot:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - phone
+        - address
+        - lat
+        - lng
+        - timezone
+        - open_time
+        - close_time
+        - delivery_fee
+        - is_accepting_orders
+        - auto_confirm_known
+        - loyalty_every
+        - reminder_lead_days
+        - default_days_per_gallon
+        - is_demo
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        lat:
+          type: [number, "null"]
+        lng:
+          type: [number, "null"]
+        timezone:
+          type: string
+        open_time:
+          type: string
+          description: Format HH:MM
+        close_time:
+          type: string
+          description: Format HH:MM
+        delivery_fee:
+          type: integer
+        is_accepting_orders:
+          type: boolean
+        auto_confirm_known:
+          type: boolean
+        loyalty_every:
+          type: [integer, "null"]
+        reminder_lead_days:
+          type: integer
+        default_days_per_gallon:
+          type: number
+        is_demo:
+          type: boolean
+    DepotResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Depot"
+    DepotUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        open_time:
+          type: string
+        close_time:
+          type: string
+        delivery_fee:
+          type: integer
+        is_accepting_orders:
+          type: boolean
+        auto_confirm_known:
+          type: boolean
+        loyalty_every:
+          type: integer
+          description: 0 mematikan loyalitas
+        reminder_lead_days:
+          type: integer
+        default_days_per_gallon:
+          type: number
+    SessionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [user, depot]
+          properties:
+            user:
+              $ref: "#/components/schemas/User"
+            depot:
+              $ref: "#/components/schemas/Depot"

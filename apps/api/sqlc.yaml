@@ -79,5 +79,6 @@ sql:
           - db_type: inet
             nullable: true
             go_type:
-              type: string
+              import: net/netip
+              type: Prefix
               pointer: true

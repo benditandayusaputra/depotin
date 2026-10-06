@@ -30,11 +30,11 @@ func NewHandler(pool *pgxpool.Pool, clk clock.Clock) *Handler {
 	return &Handler{pool: pool, q: sqlc.New(pool), clock: clk}
 }
 
-func (h *Handler) Register(r fiber.Router) {
-	r.Get("/users", h.list)
-	r.Post("/users", h.create)
-	r.Patch("/users/:id", h.update)
-	r.Post("/users/:id/reset-password", h.resetPassword)
+func (h *Handler) Register(r fiber.Router, guard fiber.Handler) {
+	r.Get("/users", guard, h.list)
+	r.Post("/users", guard, h.create)
+	r.Patch("/users/:id", guard, h.update)
+	r.Post("/users/:id/reset-password", guard, h.resetPassword)
 }
 
 func (h *Handler) list(c fiber.Ctx) error {

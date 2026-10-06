@@ -31,7 +31,7 @@ func NewHandler(svc *Service, cookies CookieWriter, clk clock.Clock, limiter *ra
 }
 
 func (h *Handler) Register(r fiber.Router) {
-	r.Post("/register", h.register, httpx.RateLimitByIP(h.limiter, registerRule, "register"))
+	r.Post("/register", httpx.RateLimitByIP(h.limiter, registerRule, "register"), h.register)
 	r.Post("/login", h.login)
 	r.Post("/refresh", h.refresh)
 	r.Post("/logout", h.logout)
