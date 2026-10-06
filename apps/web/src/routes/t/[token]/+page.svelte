@@ -90,7 +90,7 @@
     <p class="text-muted">{order.depot.name}</p>
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h1 class="text-2xl font-bold tracking-tight">Pesanan {order.code}</h1>
-      <StatusBadge status={order.status} />
+      <StatusBadge status={order.status} size="md" />
     </div>
     <p class="text-lg">
       Diantar <span class="font-semibold">{scheduledDayLabel(order.scheduled_date)}</span>

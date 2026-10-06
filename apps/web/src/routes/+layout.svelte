@@ -6,5 +6,9 @@
   let { children }: LayoutProps = $props();
 </script>
 
+<svelte:head>
+  <title>Depotin</title>
+</svelte:head>
+
 {@render children()}
 <Toaster />

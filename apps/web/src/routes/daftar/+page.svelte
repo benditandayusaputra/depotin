@@ -89,6 +89,11 @@
 
   <p class="text-center text-muted">
     Sudah punya akun?
-    <a href={resolve('/masuk')} class="font-semibold text-accent-700 dark:text-accent-300">Masuk</a>
+    <a
+      href={resolve('/masuk')}
+      class="inline-flex min-h-11 items-center px-1 font-semibold text-accent-700 dark:text-accent-300"
+    >
+      Masuk
+    </a>
   </p>
 </main>

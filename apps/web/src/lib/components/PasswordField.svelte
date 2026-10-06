@@ -40,7 +40,7 @@
   {#snippet trailing()}
     <button
       type="button"
-      class="tap rounded-md px-2 text-sm font-semibold text-accent-700 dark:text-accent-300"
+      class="tap rounded-md px-2 font-semibold text-accent-700 dark:text-accent-300"
       aria-pressed={visible}
       onclick={() => (visible = !visible)}
     >

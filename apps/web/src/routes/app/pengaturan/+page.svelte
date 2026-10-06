@@ -32,7 +32,7 @@
 <div
   role="tablist"
   aria-label="Bagian pengaturan"
-  class="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
+  class="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 py-1.5 md:mx-0 md:flex-wrap md:px-0"
 >
   {#each TABS as tab (tab.id)}
     <button

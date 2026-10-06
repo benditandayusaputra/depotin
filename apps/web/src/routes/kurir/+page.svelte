@@ -225,7 +225,7 @@
                 <p class="text-xl font-bold">{order.delivery_name}</p>
                 <p class="text-muted">{order.code}</p>
               </div>
-              <StatusBadge status={order.status} />
+              <StatusBadge status={order.status} size="md" />
             </div>
             <p>{order.delivery_address}</p>
             {#if order.delivery_note}

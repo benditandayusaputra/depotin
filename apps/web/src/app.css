@@ -25,13 +25,13 @@
   --color-neutral-800: #37322d;
   --color-neutral-900: #211e1b;
 
-  --color-status-pending: #b45309;
+  --color-status-pending: #92400e;
   --color-status-pending-soft: #fef3c7;
   --color-status-confirmed: #1d5ec4;
   --color-status-confirmed-soft: #dbeefe;
   --color-status-delivery: #6d28d9;
   --color-status-delivery-soft: #ede9fe;
-  --color-status-done: #15803d;
+  --color-status-done: #166534;
   --color-status-done-soft: #dcfce7;
   --color-status-cancelled: #b91c1c;
   --color-status-cancelled-soft: #fee2e2;

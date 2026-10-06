@@ -21,6 +21,7 @@
   {#if open}
     <ul
       role="menu"
+      onkeydown={(event) => event.key === 'Escape' && (open = false)}
       class="absolute right-0 z-20 mt-1 flex min-w-40 flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-card"
     >
       {#each OPTIONS as days (days)}

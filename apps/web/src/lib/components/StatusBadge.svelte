@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Badge, { type Tone } from './Badge.svelte';
+  import Badge, { type Size, type Tone } from './Badge.svelte';
   import { orderStatusLabel, type OrderStatus } from '$lib/utils/labels';
 
-  let { status }: { status: OrderStatus } = $props();
+  let { status, size = 'sm' }: { status: OrderStatus; size?: Size } = $props();
 
   const tones: Record<OrderStatus, Tone> = {
     pending: 'pending',
@@ -13,4 +13,4 @@
   };
 </script>
 
-<Badge tone={tones[status]}>{orderStatusLabel(status)}</Badge>
+<Badge tone={tones[status]} {size}>{orderStatusLabel(status)}</Badge>

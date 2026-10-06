@@ -110,7 +110,7 @@
       <p class="text-lg">
         Kode <span class="font-bold">{created.code}</span>
       </p>
-      <StatusBadge status={created.status} />
+      <StatusBadge status={created.status} size="md" />
       <a
         href={resolve('/t/[token]', { token: created.track_token })}
         class="inline-flex min-h-12 items-center justify-center rounded-lg bg-accent-600 px-6 font-semibold text-white"
@@ -165,7 +165,7 @@
         <Card class="flex flex-col gap-2">
           <div class="flex items-center justify-between gap-2">
             <p class="font-bold">{active.code}</p>
-            <StatusBadge status={active.status} />
+            <StatusBadge status={active.status} size="md" />
           </div>
           <p>
             {active.refill_qty} galon, diantar {scheduledDayLabel(active.scheduled_date)}
@@ -212,7 +212,7 @@
             </span>
             <span class="flex flex-col items-end gap-1">
               <span class="font-semibold tabular-nums">{formatRupiah(recent.total)}</span>
-              <StatusBadge status={recent.status} />
+              <StatusBadge status={recent.status} size="md" />
             </span>
           </li>
         {/each}
