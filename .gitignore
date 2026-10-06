@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+.DS_Store
+node_modules/
+apps/web/.svelte-kit/
+apps/web/build/
+apps/web/.vercel/
+apps/web/test-results/
+apps/web/playwright-report/
+apps/api/bin/
+apps/api/coverage.out
+*.log
