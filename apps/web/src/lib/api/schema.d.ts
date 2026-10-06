@@ -571,6 +571,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/depots/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Halaman publik depot, di-cache 30 detik dengan ETag */
+        get: operations["publicDepot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/depots/{slug}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pesanan dari halaman publik, berstatus menunggu konfirmasi */
+        post: operations["publicOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/track/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pelacakan satu pesanan */
+        get: operations["trackOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/track/{token}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pelanggan membatalkan pesanan yang masih menunggu */
+        post: operations["cancelTrackedOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/me/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Halaman pribadi pelanggan */
+        get: operations["personalPage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/me/{token}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pesan ulang satu ketukan dari link pribadi */
+        post: operations["reorder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -916,6 +1018,80 @@ export interface components {
             customers_with_loan: number;
             idle: components["schemas"]["Customer"][];
         };
+        PublicDepot: {
+            name: string;
+            slug: string;
+            phone: string;
+            address: string;
+            open_time: string;
+            close_time: string;
+            delivery_fee: number;
+            is_accepting_orders: boolean;
+        };
+        PublicDepotPage: {
+            depot: components["schemas"]["PublicDepot"];
+            products: components["schemas"]["Product"][];
+        };
+        PublicOrderCreate: {
+            name: string;
+            phone: string;
+            address: string;
+            address_note?: string;
+            qty: number;
+            note?: string;
+            /** @description Bidang jebakan untuk bot, harus kosong */
+            website?: string;
+        };
+        CreatedOrder: {
+            code: string;
+            status: components["schemas"]["OrderStatus"];
+            track_token: string;
+        };
+        TrackedOrder: {
+            code: string;
+            status: components["schemas"]["OrderStatus"];
+            fulfilment: components["schemas"]["Fulfilment"];
+            /** Format: date */
+            scheduled_date: string;
+            delivery_name: string;
+            /** @description Disamarkan, hanya 4 digit terakhir */
+            delivery_phone: string;
+            delivery_address: string;
+            refill_qty: number;
+            free_qty: number;
+            total: number;
+            /** @enum {string} */
+            payment_status: "unpaid" | "paid";
+            items: components["schemas"]["OrderItem"][];
+            can_cancel: boolean;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            confirmed_at: string | null;
+            /** Format: date-time */
+            dispatched_at: string | null;
+            /** Format: date-time */
+            delivered_at: string | null;
+            /** Format: date-time */
+            cancelled_at: string | null;
+            depot: components["schemas"]["PublicDepot"];
+        };
+        PersonalPage: {
+            customer: {
+                name: string;
+                phone_masked: string;
+                usual_qty: number;
+                loan_balance: number;
+                stamp_count: number;
+                area: string;
+            };
+            depot: components["schemas"]["PublicDepot"] & {
+                refill_price: number;
+                loyalty_every: number | null;
+            };
+            active_orders: components["schemas"]["TrackedOrder"][];
+            recent_orders: components["schemas"]["TrackedOrder"][];
+        };
         SessionResponse: {
             data: {
                 user: components["schemas"]["User"];
@@ -924,6 +1100,28 @@ export interface components {
         };
     };
     responses: {
+        /** @description Kode dan token pelacakan pesanan */
+        CreatedOrder: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["CreatedOrder"];
+                };
+            };
+        };
+        /** @description Pesanan yang dilacak */
+        Track: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["TrackedOrder"];
+                };
+            };
+        };
         /** @description Pesanan */
         Order: {
             headers: {
@@ -944,6 +1142,7 @@ export interface components {
         };
     };
     parameters: {
+        Token: string;
         IdempotencyKey: string;
         Cursor: string;
         Limit: number;
@@ -1920,6 +2119,155 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+        };
+    };
+    publicDepot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Depot dan produk aktif */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PublicDepotPage"];
+                    };
+                };
+            };
+            /** @description Tidak berubah */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    publicOrder: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicOrderCreate"];
+            };
+        };
+        responses: {
+            200: components["responses"]["CreatedOrder"];
+            201: components["responses"]["CreatedOrder"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    trackOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["Token"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Track"];
+            404: components["responses"]["Error"];
+        };
+    };
+    cancelTrackedOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["Token"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Track"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    personalPage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["Token"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ringkasan pelanggan, pesanan aktif, lima riwayat terakhir */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PersonalPage"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    reorder: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                token: components["parameters"]["Token"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    qty?: number;
+                    /**
+                     * Format: date
+                     * @description Hari ini atau besok
+                     */
+                    scheduled_date?: string;
+                    note?: string;
+                    /**
+                     * Format: uuid
+                     * @description ID pengingat dari link di pesan WhatsApp
+                     */
+                    r?: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["CreatedOrder"];
+            201: components["responses"]["CreatedOrder"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
         };
     };
 }

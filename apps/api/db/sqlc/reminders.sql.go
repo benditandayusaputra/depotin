@@ -12,6 +12,40 @@ import (
 	"github.com/google/uuid"
 )
 
+const countQueuedReminders = `-- name: CountQueuedReminders :one
+SELECT count(*) FROM reminders WHERE depot_id = $1 AND status = 'queued' AND due_date >= $2::date
+`
+
+type CountQueuedRemindersParams struct {
+	DepotID  uuid.UUID
+	FromDate time.Time
+}
+
+func (q *Queries) CountQueuedReminders(ctx context.Context, arg CountQueuedRemindersParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countQueuedReminders, arg.DepotID, arg.FromDate)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const expireStaleReminders = `-- name: ExpireStaleReminders :execrows
+UPDATE reminders SET status = 'expired'
+WHERE depot_id = $1 AND status = 'queued' AND due_date < $2::date
+`
+
+type ExpireStaleRemindersParams struct {
+	DepotID    uuid.UUID
+	BeforeDate time.Time
+}
+
+func (q *Queries) ExpireStaleReminders(ctx context.Context, arg ExpireStaleRemindersParams) (int64, error) {
+	result, err := q.db.Exec(ctx, expireStaleReminders, arg.DepotID, arg.BeforeDate)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getReminder = `-- name: GetReminder :one
 SELECT id, depot_id, customer_id, due_date, predicted_empty_at, status, sent_at, sent_by, order_id, created_at FROM reminders WHERE id = $1 AND depot_id = $2
 `
@@ -39,6 +73,92 @@ func (q *Queries) GetReminder(ctx context.Context, arg GetReminderParams) (Remin
 	return i, err
 }
 
+const listReminders = `-- name: ListReminders :many
+SELECT reminders.id, reminders.depot_id, reminders.customer_id, reminders.due_date, reminders.predicted_empty_at, reminders.status, reminders.sent_at, reminders.sent_by, reminders.order_id, reminders.created_at, customers.id, customers.depot_id, customers.name, customers.phone, customers.address, customers.address_note, customers.area, customers.lat, customers.lng, customers.token_hash, customers.token_enc, customers.token_rotated_at, customers.source, customers.is_verified, customers.usual_qty, customers.loan_balance, customers.stamp_count, customers.days_per_gallon, customers.prediction_samples, customers.prediction_confidence, customers.last_delivered_at, customers.last_delivered_qty, customers.predicted_empty_at, customers.reminder_snoozed_until, customers.is_active, customers.created_at, customers.updated_at
+FROM reminders
+JOIN customers ON customers.id = reminders.customer_id
+WHERE reminders.depot_id = $1
+  AND reminders.status = ANY($3::text[])
+  AND reminders.due_date >= $4::date
+ORDER BY reminders.status, reminders.predicted_empty_at, reminders.id
+LIMIT $2
+`
+
+type ListRemindersParams struct {
+	DepotID  uuid.UUID
+	Limit    int32
+	Statuses []string
+	FromDate time.Time
+}
+
+type ListRemindersRow struct {
+	Reminder Reminder
+	Customer Customer
+}
+
+func (q *Queries) ListReminders(ctx context.Context, arg ListRemindersParams) ([]ListRemindersRow, error) {
+	rows, err := q.db.Query(ctx, listReminders,
+		arg.DepotID,
+		arg.Limit,
+		arg.Statuses,
+		arg.FromDate,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRemindersRow{}
+	for rows.Next() {
+		var i ListRemindersRow
+		if err := rows.Scan(
+			&i.Reminder.ID,
+			&i.Reminder.DepotID,
+			&i.Reminder.CustomerID,
+			&i.Reminder.DueDate,
+			&i.Reminder.PredictedEmptyAt,
+			&i.Reminder.Status,
+			&i.Reminder.SentAt,
+			&i.Reminder.SentBy,
+			&i.Reminder.OrderID,
+			&i.Reminder.CreatedAt,
+			&i.Customer.ID,
+			&i.Customer.DepotID,
+			&i.Customer.Name,
+			&i.Customer.Phone,
+			&i.Customer.Address,
+			&i.Customer.AddressNote,
+			&i.Customer.Area,
+			&i.Customer.Lat,
+			&i.Customer.Lng,
+			&i.Customer.TokenHash,
+			&i.Customer.TokenEnc,
+			&i.Customer.TokenRotatedAt,
+			&i.Customer.Source,
+			&i.Customer.IsVerified,
+			&i.Customer.UsualQty,
+			&i.Customer.LoanBalance,
+			&i.Customer.StampCount,
+			&i.Customer.DaysPerGallon,
+			&i.Customer.PredictionSamples,
+			&i.Customer.PredictionConfidence,
+			&i.Customer.LastDeliveredAt,
+			&i.Customer.LastDeliveredQty,
+			&i.Customer.PredictedEmptyAt,
+			&i.Customer.ReminderSnoozedUntil,
+			&i.Customer.IsActive,
+			&i.Customer.CreatedAt,
+			&i.Customer.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markReminderOrdered = `-- name: MarkReminderOrdered :execrows
 UPDATE reminders SET status = 'ordered', order_id = $2
 WHERE id = $1 AND customer_id = $3 AND status = 'sent' AND sent_at >= $4::timestamptz
@@ -64,6 +184,101 @@ func (q *Queries) MarkReminderOrdered(ctx context.Context, arg MarkReminderOrder
 	return result.RowsAffected(), nil
 }
 
+const markReminderSent = `-- name: MarkReminderSent :one
+UPDATE reminders SET status = 'sent', sent_at = $3, sent_by = $4
+WHERE id = $1 AND depot_id = $2 AND status IN ('queued', 'sent')
+RETURNING id, depot_id, customer_id, due_date, predicted_empty_at, status, sent_at, sent_by, order_id, created_at
+`
+
+type MarkReminderSentParams struct {
+	ID      uuid.UUID
+	DepotID uuid.UUID
+	SentAt  *time.Time
+	SentBy  *uuid.UUID
+}
+
+func (q *Queries) MarkReminderSent(ctx context.Context, arg MarkReminderSentParams) (Reminder, error) {
+	row := q.db.QueryRow(ctx, markReminderSent,
+		arg.ID,
+		arg.DepotID,
+		arg.SentAt,
+		arg.SentBy,
+	)
+	var i Reminder
+	err := row.Scan(
+		&i.ID,
+		&i.DepotID,
+		&i.CustomerID,
+		&i.DueDate,
+		&i.PredictedEmptyAt,
+		&i.Status,
+		&i.SentAt,
+		&i.SentBy,
+		&i.OrderID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const queueReminders = `-- name: QueueReminders :execrows
+INSERT INTO reminders (id, depot_id, customer_id, due_date, predicted_empty_at, status)
+SELECT gen_random_uuid(), c.depot_id, c.id, $2::date, c.predicted_empty_at, 'queued'
+FROM customers c
+WHERE c.depot_id = $1 AND c.is_active AND c.is_verified
+  AND c.predicted_empty_at IS NOT NULL
+  AND c.predicted_empty_at < $3::timestamptz
+  AND (c.reminder_snoozed_until IS NULL OR c.reminder_snoozed_until <= $2::date)
+  AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id AND o.status IN ('pending', 'confirmed', 'on_delivery'))
+  AND NOT EXISTS (SELECT 1 FROM reminders r WHERE r.customer_id = c.id AND r.status IN ('queued', 'sent') AND r.due_date >= $4::date)
+ON CONFLICT (customer_id, due_date) DO NOTHING
+`
+
+type QueueRemindersParams struct {
+	DepotID     uuid.UUID
+	DueDate     time.Time
+	DueBefore   time.Time
+	RecentAfter time.Time
+}
+
+func (q *Queries) QueueReminders(ctx context.Context, arg QueueRemindersParams) (int64, error) {
+	result, err := q.db.Exec(ctx, queueReminders,
+		arg.DepotID,
+		arg.DueDate,
+		arg.DueBefore,
+		arg.RecentAfter,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const reminderStats = `-- name: ReminderStats :one
+SELECT
+  count(*) FILTER (WHERE status IN ('sent', 'ordered'))::bigint AS sent,
+  count(*) FILTER (WHERE status = 'ordered')::bigint AS ordered
+FROM reminders
+WHERE depot_id = $1 AND sent_at >= $2::timestamptz AND sent_at < $3::timestamptz
+`
+
+type ReminderStatsParams struct {
+	DepotID uuid.UUID
+	FromAt  time.Time
+	ToAt    time.Time
+}
+
+type ReminderStatsRow struct {
+	Sent    int64
+	Ordered int64
+}
+
+func (q *Queries) ReminderStats(ctx context.Context, arg ReminderStatsParams) (ReminderStatsRow, error) {
+	row := q.db.QueryRow(ctx, reminderStats, arg.DepotID, arg.FromAt, arg.ToAt)
+	var i ReminderStatsRow
+	err := row.Scan(&i.Sent, &i.Ordered)
+	return i, err
+}
+
 const reopenReminderForCancelledOrder = `-- name: ReopenReminderForCancelledOrder :exec
 UPDATE reminders SET status = 'sent', order_id = NULL WHERE order_id = $1 AND status = 'ordered'
 `
@@ -71,4 +286,33 @@ UPDATE reminders SET status = 'sent', order_id = NULL WHERE order_id = $1 AND st
 func (q *Queries) ReopenReminderForCancelledOrder(ctx context.Context, orderID *uuid.UUID) error {
 	_, err := q.db.Exec(ctx, reopenReminderForCancelledOrder, orderID)
 	return err
+}
+
+const skipReminder = `-- name: SkipReminder :one
+UPDATE reminders SET status = 'skipped'
+WHERE id = $1 AND depot_id = $2 AND status IN ('queued', 'sent')
+RETURNING id, depot_id, customer_id, due_date, predicted_empty_at, status, sent_at, sent_by, order_id, created_at
+`
+
+type SkipReminderParams struct {
+	ID      uuid.UUID
+	DepotID uuid.UUID
+}
+
+func (q *Queries) SkipReminder(ctx context.Context, arg SkipReminderParams) (Reminder, error) {
+	row := q.db.QueryRow(ctx, skipReminder, arg.ID, arg.DepotID)
+	var i Reminder
+	err := row.Scan(
+		&i.ID,
+		&i.DepotID,
+		&i.CustomerID,
+		&i.DueDate,
+		&i.PredictedEmptyAt,
+		&i.Status,
+		&i.SentAt,
+		&i.SentBy,
+		&i.OrderID,
+		&i.CreatedAt,
+	)
+	return i, err
 }

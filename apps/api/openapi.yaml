@@ -790,8 +790,150 @@ paths:
                 $ref: "#/components/schemas/FlagResponse"
         "404":
           $ref: "#/components/responses/Error"
+  /public/depots/{slug}:
+    get:
+      operationId: publicDepot
+      summary: Halaman publik depot, di-cache 30 detik dengan ETag
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Depot dan produk aktif
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PublicDepotPage"
+        "304":
+          description: Tidak berubah
+        "404":
+          $ref: "#/components/responses/Error"
+  /public/depots/{slug}/orders:
+    post:
+      operationId: publicOrder
+      summary: Pesanan dari halaman publik, berstatus menunggu konfirmasi
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicOrderCreate"
+      responses:
+        "201":
+          $ref: "#/components/responses/CreatedOrder"
+        "200":
+          $ref: "#/components/responses/CreatedOrder"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+  /public/track/{token}:
+    get:
+      operationId: trackOrder
+      summary: Pelacakan satu pesanan
+      parameters:
+        - $ref: "#/components/parameters/Token"
+      responses:
+        "200":
+          $ref: "#/components/responses/Track"
+        "404":
+          $ref: "#/components/responses/Error"
+  /public/track/{token}/cancel:
+    post:
+      operationId: cancelTrackedOrder
+      summary: Pelanggan membatalkan pesanan yang masih menunggu
+      parameters:
+        - $ref: "#/components/parameters/Token"
+      responses:
+        "200":
+          $ref: "#/components/responses/Track"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /public/me/{token}:
+    get:
+      operationId: personalPage
+      summary: Halaman pribadi pelanggan
+      parameters:
+        - $ref: "#/components/parameters/Token"
+      responses:
+        "200":
+          description: Ringkasan pelanggan, pesanan aktif, lima riwayat terakhir
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PersonalPage"
+        "404":
+          $ref: "#/components/responses/Error"
+  /public/me/{token}/orders:
+    post:
+      operationId: reorder
+      summary: Pesan ulang satu ketukan dari link pribadi
+      parameters:
+        - $ref: "#/components/parameters/Token"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qty:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                scheduled_date:
+                  type: string
+                  format: date
+                  description: Hari ini atau besok
+                note:
+                  type: string
+                  maxLength: 300
+                r:
+                  type: string
+                  format: uuid
+                  description: ID pengingat dari link di pesan WhatsApp
+      responses:
+        "201":
+          $ref: "#/components/responses/CreatedOrder"
+        "200":
+          $ref: "#/components/responses/CreatedOrder"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
 components:
   parameters:
+    Token:
+      name: token
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 64
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -818,6 +960,26 @@ components:
         type: string
         format: uuid
   responses:
+    CreatedOrder:
+      description: Kode dan token pelacakan pesanan
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data]
+            properties:
+              data:
+                $ref: "#/components/schemas/CreatedOrder"
+    Track:
+      description: Pesanan yang dilacak
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data]
+            properties:
+              data:
+                $ref: "#/components/schemas/TrackedOrder"
     Order:
       description: Pesanan
       content:
@@ -1602,6 +1764,183 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Customer"
+    PublicDepot:
+      type: object
+      required: [name, slug, phone, address, open_time, close_time, delivery_fee, is_accepting_orders]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        open_time:
+          type: string
+        close_time:
+          type: string
+        delivery_fee:
+          type: integer
+        is_accepting_orders:
+          type: boolean
+    PublicDepotPage:
+      type: object
+      required: [depot, products]
+      properties:
+        depot:
+          $ref: "#/components/schemas/PublicDepot"
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+    PublicOrderCreate:
+      type: object
+      required: [name, phone, address, qty]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        phone:
+          type: string
+        address:
+          type: string
+          minLength: 5
+          maxLength: 300
+        address_note:
+          type: string
+          maxLength: 200
+        qty:
+          type: integer
+          minimum: 1
+          maximum: 50
+        note:
+          type: string
+          maxLength: 300
+        website:
+          type: string
+          maxLength: 0
+          description: Bidang jebakan untuk bot, harus kosong
+    CreatedOrder:
+      type: object
+      required: [code, status, track_token]
+      properties:
+        code:
+          type: string
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        track_token:
+          type: string
+    TrackedOrder:
+      type: object
+      required:
+        - code
+        - status
+        - fulfilment
+        - scheduled_date
+        - delivery_name
+        - delivery_phone
+        - delivery_address
+        - refill_qty
+        - free_qty
+        - total
+        - payment_status
+        - items
+        - can_cancel
+        - created_at
+        - confirmed_at
+        - dispatched_at
+        - delivered_at
+        - cancelled_at
+        - depot
+      properties:
+        code:
+          type: string
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        fulfilment:
+          $ref: "#/components/schemas/Fulfilment"
+        scheduled_date:
+          type: string
+          format: date
+        delivery_name:
+          type: string
+        delivery_phone:
+          type: string
+          description: Disamarkan, hanya 4 digit terakhir
+        delivery_address:
+          type: string
+        refill_qty:
+          type: integer
+        free_qty:
+          type: integer
+        total:
+          type: integer
+        payment_status:
+          type: string
+          enum: [unpaid, paid]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        can_cancel:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        confirmed_at:
+          type: [string, "null"]
+          format: date-time
+        dispatched_at:
+          type: [string, "null"]
+          format: date-time
+        delivered_at:
+          type: [string, "null"]
+          format: date-time
+        cancelled_at:
+          type: [string, "null"]
+          format: date-time
+        depot:
+          $ref: "#/components/schemas/PublicDepot"
+    PersonalPage:
+      type: object
+      required: [customer, depot, active_orders, recent_orders]
+      properties:
+        customer:
+          type: object
+          required: [name, phone_masked, usual_qty, loan_balance, stamp_count, area]
+          properties:
+            name:
+              type: string
+            phone_masked:
+              type: string
+            usual_qty:
+              type: integer
+            loan_balance:
+              type: integer
+            stamp_count:
+              type: integer
+            area:
+              type: string
+        depot:
+          allOf:
+            - $ref: "#/components/schemas/PublicDepot"
+            - type: object
+              required: [refill_price, loyalty_every]
+              properties:
+                refill_price:
+                  type: integer
+                loyalty_every:
+                  type: [integer, "null"]
+        active_orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackedOrder"
+        recent_orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackedOrder"
     SessionResponse:
       type: object
       required: [data]

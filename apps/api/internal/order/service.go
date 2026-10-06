@@ -36,7 +36,24 @@ var (
 	ErrCourierNotFound  = errors.New("kurir tidak ditemukan")
 	ErrNotAssigned      = errors.New("pesanan bukan milik kurir ini")
 	ErrScheduleRange    = errors.New("tanggal antar di luar rentang")
+	ErrReminderRace     = errors.New("pengingat berubah saat pesanan dibuat")
 )
+
+const ReminderWindow = 48 * time.Hour
+
+func (s *Service) reminderIsClaimable(ctx context.Context, q *sqlc.Queries, reminderID uuid.UUID, customer sqlc.Customer, now time.Time) (bool, error) {
+	r, err := q.GetReminder(ctx, sqlc.GetReminderParams{ID: reminderID, DepotID: customer.DepotID})
+	if err != nil {
+		if db.IsNoRows(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("ambil pengingat: %w", err)
+	}
+	if r.CustomerID != customer.ID || r.Status != "sent" || r.SentAt == nil || r.SentAt.Before(now.Add(-ReminderWindow)) {
+		return false, nil
+	}
+	return true, nil
+}
 
 type Publisher interface {
 	OrderCreated(depotID uuid.UUID, view View)
@@ -215,6 +232,18 @@ func (s *Service) createTx(ctx context.Context, q *sqlc.Queries, in CreateInput)
 	if in.Delivery != nil {
 		delivery = *in.Delivery
 	}
+	source, reminderID := in.Source, in.ReminderID
+	if reminderID != nil {
+		valid, err := s.reminderIsClaimable(ctx, q, *reminderID, customer, now)
+		if err != nil {
+			return Detail{}, err
+		}
+		if valid {
+			source = SourceReminder
+		} else {
+			reminderID = nil
+		}
+	}
 	var idemKey *string
 	if in.IdempotencyKey != "" {
 		idemKey = &in.IdempotencyKey
@@ -225,10 +254,10 @@ func (s *Service) createTx(ctx context.Context, q *sqlc.Queries, in CreateInput)
 	}
 	order, err := q.CreateOrder(ctx, sqlc.CreateOrderParams{
 		ID: idgen.NewID(), DepotID: in.DepotID, CustomerID: customer.ID, Code: idgen.OrderCode(today, int(seq)),
-		Source: in.Source, Status: in.Status, Fulfilment: in.Fulfilment, ScheduledDate: scheduled,
+		Source: source, Status: in.Status, Fulfilment: in.Fulfilment, ScheduledDate: scheduled,
 		DeliveryName: delivery.Name, DeliveryPhone: delivery.Phone, DeliveryAddress: delivery.Address, DeliveryNote: delivery.Note, Note: in.Note,
 		RefillQty: quote.RefillQty, FreeQty: quote.FreeQty, Subtotal: quote.Subtotal, DeliveryFee: quote.DeliveryFee, Discount: quote.Discount, Total: quote.Total,
-		ReminderID: in.ReminderID, TrackTokenHash: crypto.HashToken(token), IdempotencyKey: idemKey, CreatedBy: in.Actor.UserID,
+		ReminderID: reminderID, TrackTokenHash: crypto.HashToken(token), IdempotencyKey: idemKey, CreatedBy: in.Actor.UserID,
 		CreatedAt: now, ConfirmedAt: confirmedAt,
 	})
 	if err != nil {
@@ -243,7 +272,16 @@ func (s *Service) createTx(ctx context.Context, q *sqlc.Queries, in CreateInput)
 		}
 		items = append(items, item)
 	}
-	if err := s.event(ctx, q, order, EventCreated, in.Actor, "", map[string]any{"status": in.Status, "source": in.Source}); err != nil {
+	if reminderID != nil {
+		rows, err := q.MarkReminderOrdered(ctx, sqlc.MarkReminderOrderedParams{ID: *reminderID, OrderID: &order.ID, CustomerID: customer.ID, SentAfter: now.Add(-ReminderWindow)})
+		if err != nil {
+			return Detail{}, fmt.Errorf("tandai pengingat terpesan: %w", err)
+		}
+		if rows == 0 {
+			return Detail{}, ErrReminderRace
+		}
+	}
+	if err := s.event(ctx, q, order, EventCreated, in.Actor, "", map[string]any{"status": in.Status, "source": source}); err != nil {
 		return Detail{}, err
 	}
 	if in.Status == StatusConfirmed {
@@ -472,4 +510,19 @@ func (s *Service) explainNoRows(ctx context.Context, depotID, orderID uuid.UUID)
 		return Detail{}, fmt.Errorf("ambil pesanan: %w", err)
 	}
 	return Detail{}, httpx.InvalidTransition("")
+}
+
+func (s *Service) CancelByCustomer(ctx context.Context, depotID, orderID uuid.UUID, ip string) (Detail, error) {
+	now := s.clock.Now()
+	actor := Actor{Type: ActorCustomer, IP: ip}
+	return s.transition(ctx, depotID, orderID, func(q *sqlc.Queries) (sqlc.Order, error) {
+		o, err := q.CancelPendingOrderByCustomer(ctx, sqlc.CancelPendingOrderByCustomerParams{ID: orderID, CancelledAt: &now})
+		if err != nil {
+			return sqlc.Order{}, fmt.Errorf("batalkan oleh pelanggan: %w", err)
+		}
+		if err := q.ReopenReminderForCancelledOrder(ctx, &o.ID); err != nil {
+			return sqlc.Order{}, fmt.Errorf("buka ulang pengingat: %w", err)
+		}
+		return o, s.event(ctx, q, o, EventCancelled, actor, "", map[string]any{"reason": "Dibatalkan pelanggan"})
+	})
 }

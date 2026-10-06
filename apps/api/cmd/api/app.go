@@ -21,6 +21,7 @@ import (
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/httpx"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/ratelimit"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/product"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/public"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/user"
 )
 
@@ -87,15 +88,17 @@ func newApp(d dependencies) (*fiber.App, error) {
 	auth.NewHandler(authSvc, cookies, d.clock, limiter).Register(v1.Group("/auth"))
 
 	ownerOnly := httpx.RequireRole(auth.RoleOwner)
-	depot.NewHandler(d.pool, nil).Register(v1, ownerOnly)
 	user.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
-	product.NewHandler(d.pool, nil).Register(v1, ownerOnly)
 	customer.NewHandler(d.pool, d.clock, customer.NewLinks(d.cfg.WebOrigin, sealer)).Register(v1, ownerOnly)
 	orderSvc := order.NewService(d.pool, d.clock, nil)
 	orderHandler := order.NewHandler(orderSvc)
 	orderHandler.Register(v1, ownerOnly, auth.RequireLogin())
 	orderHandler.RegisterCourier(v1, httpx.RequireRole(auth.RoleCourier))
 	gallon.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
+	publicHandler := public.NewHandler(orderSvc, d.clock, limiter)
+	publicHandler.Register(v1)
+	depot.NewHandler(d.pool, publicHandler.InvalidateDepot).Register(v1, ownerOnly)
+	product.NewHandler(d.pool, publicHandler.InvalidateDepotByID).Register(v1, ownerOnly)
 
 	return app, nil
 }
