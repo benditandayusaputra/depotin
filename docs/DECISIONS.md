@@ -156,3 +156,19 @@ Konteks: skema dimigrasikan dan data contoh dimuat ke proyek Neon milik pengguna
 Hasil: API berjalan tanpa galat terhadap pooler, termasuk prepared statement bawaan pgx. Dari mesin pengembang di Indonesia, `GET /orders` 130 ms pada permintaan pertama dan 67 ms setelahnya, `GET /dashboard/today` 295 ms karena beberapa kueri berurutan. Seed penuh memakan 190 detik karena ribuan kueri kecil melintasi jaringan, sehingga setel ulang demo harian dijalankan di VPS yang satu region dengan Neon. Target p95 SPEC diukur di dalam satu region, bukan dari luar negeri.
 
 `apps/api/.env` lokal (tidak di-commit) mengarah ke Neon agar `make api` memakai basis data yang sama dengan demo, sementara `make test-api` tetap memakai PostgreSQL Docker.
+
+## 2026-10-06: Cakupan tes API
+
+Diukur dengan `go test -race -coverpkg=./internal/... ./...` termasuk tes HTTP di `cmd/api` terhadap PostgreSQL lokal. Target SPEC 15.1 minimal 80% untuk `prediction`, `order`, `gallon`, dan `auth` terpenuhi.
+
+| Paket | Cakupan |
+|---|---|
+| internal/prediction | 99,2% |
+| internal/gallon | 92,0% |
+| internal/customer | 90,6% |
+| internal/report | 87,4% |
+| internal/order | 85,3% |
+| internal/auth | 84,5% |
+| internal/stream | 81,8% |
+| internal/public | 81,3% |
+| internal/reminder | 80,3% |
