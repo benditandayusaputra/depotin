@@ -256,6 +256,64 @@ paths:
                 $ref: "#/components/schemas/FlagResponse"
         "404":
           $ref: "#/components/responses/Error"
+  /products:
+    get:
+      operationId: listProducts
+      summary: Daftar produk depot
+      responses:
+        "200":
+          description: Daftar produk
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      summary: Menambah produk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreate"
+      responses:
+        "201":
+          description: Produk dibuat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "422":
+          $ref: "#/components/responses/Error"
+  /products/{id}:
+    patch:
+      operationId: updateProduct
+      summary: Mengubah produk
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdate"
+      responses:
+        "200":
+          description: Produk diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
 components:
   parameters:
     Id:
@@ -510,6 +568,65 @@ components:
           type: integer
         default_days_per_gallon:
           type: number
+    ProductKind:
+      type: string
+      enum: [refill, new_gallon, other]
+    Product:
+      type: object
+      required: [id, name, kind, price, is_active, sort_order, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        kind:
+          $ref: "#/components/schemas/ProductKind"
+        price:
+          type: integer
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    ProductResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Product"
+    ProductCreate:
+      type: object
+      required: [name, kind, price]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 60
+        kind:
+          $ref: "#/components/schemas/ProductKind"
+        price:
+          type: integer
+          minimum: 0
+        sort_order:
+          type: integer
+          minimum: 0
+    ProductUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        kind:
+          $ref: "#/components/schemas/ProductKind"
+        price:
+          type: integer
+          minimum: 0
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
     SessionResponse:
       type: object
       required: [data]

@@ -16,6 +16,7 @@ import (
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/clock"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/httpx"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/ratelimit"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/product"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/user"
 )
 
@@ -80,6 +81,7 @@ func newApp(d dependencies) *fiber.App {
 	ownerOnly := httpx.RequireRole(auth.RoleOwner)
 	depot.NewHandler(d.pool, nil).Register(v1, ownerOnly)
 	user.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
+	product.NewHandler(d.pool, nil).Register(v1, ownerOnly)
 
 	return app
 }
