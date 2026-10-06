@@ -1,0 +1,42 @@
+services:
+  api:
+    image: ghcr.io/benditandayusaputra/depotin-api:latest
+    build:
+      context: ../apps/api
+    env_file: .env
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    expose:
+      - "8080"
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+    depends_on:
+      - api
+
+networks:
+  internal:
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -87,3 +87,29 @@ Konteks: SPEC 10.5 meminta CSP mode hash. SvelteKit 2 merender pengumum navigasi
 Pilihan: `style-src 'self' 'unsafe-inline'`. Skrip tetap ketat dengan hash.
 
 Alasan: alternatifnya adalah menyematkan hash dari string internal SvelteKit yang bisa berubah saat pembaruan minor. Risiko `unsafe-inline` pada gaya jauh lebih kecil daripada pada skrip, dan tidak ada `{@html}` di aplikasi.
+
+## 2026-10-06: Go 1.26
+
+Konteks: Fiber v3.5.0 menuntut `go >= 1.26`, sehingga `go.mod` naik ke 1.26.0 saat dependensi ditambahkan.
+
+Pilihan: proyek memakai Go 1.26 (toolchain lokal diunduh otomatis, Dockerfile memakai `golang:1.26-alpine`). Tabel versi di atas yang menyebut 1.25.5 sudah tidak berlaku.
+
+## 2026-10-06: Penjadwal memakai satu zona waktu
+
+Konteks: SPEC 6.6 meminta penjadwal berjalan pukul 06.00 zona waktu depot, dan SPEC 11.5 meminta penjadwal tidak menyentuh basis data tiap menit.
+
+Pilihan: penjadwal menghitung jadwal berikutnya di memori untuk zona Asia/Jakarta, lalu menyusun antrean semua depot sekali sehari pada 06.00 WIB. Antrean juga disusun ulang secara idempoten setiap kali halaman Pengingat dibuka, sehingga depot di zona lain tetap mendapat antrean yang benar saat dipakai.
+
+Alasan: semua depot bawaan memakai `Asia/Jakarta`, dan satu kali bangun per hari menjaga kuota komputasi Neon.
+
+## 2026-10-06: Lewati pengingat hanya untuk hari itu
+
+Konteks: PRD F-09 menyebut pemilik bisa melewati atau menunda pengingat.
+
+Pilihan: Lewati menandai pengingat `skipped` dan pelanggan bisa muncul lagi besok. Untuk menunda beberapa hari, pakai Tunda yang mengisi `reminder_snoozed_until`. Ini mengikuti SPEC 6.6 yang hanya menjamin pengingat yang dilewati tidak muncul lagi di hari yang sama.
+
+## 2026-10-06: Kurir melihat total tagihan
+
+Konteks: SPEC 10.3 menyebut kurir tidak menerima data omzet, sedangkan PRD F-06 menyebut kurir melihat total yang harus ditagih.
+
+Pilihan: tampilan kurir (`CourierOrder`) memuat `total`, `refill_qty`, dan `free_qty`, tetapi tidak memuat `subtotal`, `discount`, `delivery_fee`, maupun data agregat omzet. Endpoint dasbor dan laporan ditolak untuk kurir.

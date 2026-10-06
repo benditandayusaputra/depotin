@@ -1,0 +1,35 @@
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	@stream path /api/v1/stream
+	reverse_proxy @stream api:8080 {
+		flush_interval -1
+		transport http {
+			read_timeout 0
+		}
+	}
+
+	reverse_proxy api:8080
+
+	log {
+		output file /data/access.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					replace ticket REDACTED
+				}
+				request>headers>Cookie delete
+			}
+		}
+	}
+}
