@@ -314,8 +314,165 @@ paths:
           $ref: "#/components/responses/Error"
         "422":
           $ref: "#/components/responses/Error"
+  /customers:
+    get:
+      operationId: listCustomers
+      summary: Daftar atau pencarian pelanggan
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 60
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [all, due, at_risk, loan]
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Daftar pelanggan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerListResponse"
+    post:
+      operationId: createCustomer
+      summary: Menambah pelanggan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerCreate"
+      responses:
+        "201":
+          description: Pelanggan dibuat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerResponse"
+        "422":
+          $ref: "#/components/responses/Error"
+  /customers/{id}:
+    get:
+      operationId: getCustomer
+      summary: Rincian pelanggan
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Pelanggan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateCustomer
+      summary: Mengubah pelanggan
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerUpdate"
+      responses:
+        "200":
+          description: Pelanggan diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /customers/{id}/link:
+    post:
+      operationId: getCustomerLink
+      summary: Mengambil link pribadi pelanggan, membuatnya bila belum ada
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Link pribadi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+  /customers/{id}/link/rotate:
+    post:
+      operationId: rotateCustomerLink
+      summary: Membuat link pribadi baru dan mematikan yang lama
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Link baru
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+  /customers/{id}/snooze:
+    post:
+      operationId: snoozeCustomer
+      summary: Menunda pengingat pelanggan beberapa hari
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [days]
+              properties:
+                days:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+      responses:
+        "200":
+          description: Ditunda
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [snoozed_until]
+                    properties:
+                      snoozed_until:
+                        type: string
+                        format: date
+        "404":
+          $ref: "#/components/responses/Error"
 components:
   parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
     Id:
       name: id
       in: path
@@ -627,6 +784,166 @@ components:
           type: boolean
         sort_order:
           type: integer
+    Confidence:
+      type: string
+      enum: [none, low, medium, high]
+    Customer:
+      type: object
+      required:
+        - id
+        - name
+        - phone
+        - address
+        - address_note
+        - area
+        - lat
+        - lng
+        - source
+        - is_verified
+        - usual_qty
+        - loan_balance
+        - stamp_count
+        - days_per_gallon
+        - prediction_samples
+        - prediction_confidence
+        - last_delivered_at
+        - last_delivered_qty
+        - predicted_empty_at
+        - reminder_snoozed_until
+        - is_active
+        - has_link
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        address_note:
+          type: string
+        area:
+          type: string
+        lat:
+          type: [number, "null"]
+        lng:
+          type: [number, "null"]
+        source:
+          type: string
+          enum: [owner, public]
+        is_verified:
+          type: boolean
+        usual_qty:
+          type: integer
+        loan_balance:
+          type: integer
+        stamp_count:
+          type: integer
+        days_per_gallon:
+          type: [number, "null"]
+        prediction_samples:
+          type: integer
+        prediction_confidence:
+          $ref: "#/components/schemas/Confidence"
+        last_delivered_at:
+          type: [string, "null"]
+          format: date-time
+        last_delivered_qty:
+          type: [integer, "null"]
+        predicted_empty_at:
+          type: [string, "null"]
+          format: date-time
+        reminder_snoozed_until:
+          type: [string, "null"]
+          format: date
+        is_active:
+          type: boolean
+        has_link:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    CustomerResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Customer"
+    CustomerListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+        meta:
+          $ref: "#/components/schemas/Cursor"
+    CustomerCreate:
+      type: object
+      required: [name, phone]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        phone:
+          type: string
+        address:
+          type: string
+          maxLength: 300
+        address_note:
+          type: string
+          maxLength: 200
+        area:
+          type: string
+          maxLength: 60
+        lat:
+          type: number
+        lng:
+          type: number
+        usual_qty:
+          type: integer
+          minimum: 1
+          maximum: 50
+    CustomerUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        address_note:
+          type: string
+        area:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        usual_qty:
+          type: integer
+        is_active:
+          type: boolean
+    LinkResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [link, wa_url]
+          properties:
+            link:
+              type: string
+              format: uri
+            wa_url:
+              type: string
+              format: uri
     SessionResponse:
       type: object
       required: [data]

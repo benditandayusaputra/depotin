@@ -49,7 +49,11 @@ func newHarness(t *testing.T) *harness {
 	}
 	clk := clock.NewFake(time.Date(2026, 10, 6, 8, 0, 0, 0, time.UTC))
 	deps := dependencies{cfg: cfg, log: slog.New(slog.NewJSONHandler(io.Discard, nil)), pool: pool, clock: clk}
-	return &harness{t: t, app: newApp(deps), deps: deps, clock: clk}
+	app, err := newApp(deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &harness{t: t, app: app, deps: deps, clock: clk}
 }
 
 type client struct {

@@ -10,6 +10,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
+
 	"github.com/benditandayusaputra/depotin/apps/api/internal/config"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/httpx"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/testutil"
@@ -53,7 +55,7 @@ func TestHealthzWithoutEdgeKey(t *testing.T) {
 	if os.Getenv("DATABASE_URL") == "" {
 		t.Skip("DATABASE_URL kosong")
 	}
-	app := newApp(*testApp(t))
+	app := mustApp(t)
 	res, err := app.Test(httptest.NewRequest(http.MethodGet, "/healthz", nil))
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +69,7 @@ func TestHealthzWithoutEdgeKey(t *testing.T) {
 }
 
 func TestReadyzRejectsWithoutEdgeKey(t *testing.T) {
-	app := newApp(*testApp(t))
+	app := mustApp(t)
 	cases := map[string]string{"missing": "", "wrong": "bukan-kunci"}
 	for name, key := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -91,7 +93,10 @@ func TestReadyzRejectsWithoutEdgeKey(t *testing.T) {
 
 func TestReadyzWithEdgeKey(t *testing.T) {
 	deps := testApp(t)
-	app := newApp(*deps)
+	app, err := newApp(*deps)
+	if err != nil {
+		t.Fatal(err)
+	}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/readyz", nil)
 	req.Header.Set(httpx.HeaderEdgeKey, testEdgeKey)
 	req.Header.Set(httpx.HeaderRequestID, "req-123")
@@ -123,7 +128,7 @@ func TestReadyzWithEdgeKey(t *testing.T) {
 }
 
 func TestUnknownRouteReturnsStandardError(t *testing.T) {
-	app := newApp(*testApp(t))
+	app := mustApp(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/tidak-ada", nil)
 	req.Header.Set(httpx.HeaderEdgeKey, testEdgeKey)
 	res, err := app.Test(req)
@@ -136,4 +141,13 @@ func TestUnknownRouteReturnsStandardError(t *testing.T) {
 	if code := decodeError(t, res); code != httpx.CodeNotFound {
 		t.Fatalf("code %q", code)
 	}
+}
+
+func mustApp(t *testing.T) *fiber.App {
+	t.Helper()
+	app, err := newApp(*testApp(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return app
 }

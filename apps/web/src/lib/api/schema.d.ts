@@ -245,6 +245,93 @@ export interface paths {
         patch: operations["updateProduct"];
         trace?: never;
     };
+    "/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daftar atau pencarian pelanggan */
+        get: operations["listCustomers"];
+        put?: never;
+        /** Menambah pelanggan */
+        post: operations["createCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rincian pelanggan */
+        get: operations["getCustomer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mengubah pelanggan */
+        patch: operations["updateCustomer"];
+        trace?: never;
+    };
+    "/customers/{id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mengambil link pribadi pelanggan, membuatnya bila belum ada */
+        post: operations["getCustomerLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/link/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Membuat link pribadi baru dan mematikan yang lama */
+        post: operations["rotateCustomerLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menunda pengingat pelanggan beberapa hari */
+        post: operations["snoozeCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -386,6 +473,75 @@ export interface components {
             is_active?: boolean;
             sort_order?: number;
         };
+        /** @enum {string} */
+        Confidence: "none" | "low" | "medium" | "high";
+        Customer: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            phone: string;
+            address: string;
+            address_note: string;
+            area: string;
+            lat: number | null;
+            lng: number | null;
+            /** @enum {string} */
+            source: "owner" | "public";
+            is_verified: boolean;
+            usual_qty: number;
+            loan_balance: number;
+            stamp_count: number;
+            days_per_gallon: number | null;
+            prediction_samples: number;
+            prediction_confidence: components["schemas"]["Confidence"];
+            /** Format: date-time */
+            last_delivered_at: string | null;
+            last_delivered_qty: number | null;
+            /** Format: date-time */
+            predicted_empty_at: string | null;
+            /** Format: date */
+            reminder_snoozed_until: string | null;
+            is_active: boolean;
+            has_link: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        CustomerResponse: {
+            data: components["schemas"]["Customer"];
+        };
+        CustomerListResponse: {
+            data: components["schemas"]["Customer"][];
+            meta: components["schemas"]["Cursor"];
+        };
+        CustomerCreate: {
+            name: string;
+            phone: string;
+            address?: string;
+            address_note?: string;
+            area?: string;
+            lat?: number;
+            lng?: number;
+            usual_qty?: number;
+        };
+        CustomerUpdate: {
+            name?: string;
+            phone?: string;
+            address?: string;
+            address_note?: string;
+            area?: string;
+            lat?: number;
+            lng?: number;
+            usual_qty?: number;
+            is_active?: boolean;
+        };
+        LinkResponse: {
+            data: {
+                /** Format: uri */
+                link: string;
+                /** Format: uri */
+                wa_url: string;
+            };
+        };
         SessionResponse: {
             data: {
                 user: components["schemas"]["User"];
@@ -405,6 +561,8 @@ export interface components {
         };
     };
     parameters: {
+        Cursor: string;
+        Limit: number;
         Id: string;
     };
     requestBodies: never;
@@ -822,6 +980,187 @@ export interface operations {
             };
             404: components["responses"]["Error"];
             422: components["responses"]["Error"];
+        };
+    };
+    listCustomers: {
+        parameters: {
+            query?: {
+                q?: string;
+                filter?: "all" | "due" | "at_risk" | "loan";
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daftar pelanggan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerListResponse"];
+                };
+            };
+        };
+    };
+    createCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerCreate"];
+            };
+        };
+        responses: {
+            /** @description Pelanggan dibuat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            422: components["responses"]["Error"];
+        };
+    };
+    getCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pelanggan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    updateCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Pelanggan diperbarui */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getCustomerLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Link pribadi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkResponse"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    rotateCustomerLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Link baru */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkResponse"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    snoozeCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    days: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Ditunda */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date */
+                            snoozed_until: string;
+                        };
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
 }

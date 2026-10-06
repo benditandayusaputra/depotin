@@ -43,7 +43,10 @@ func run() error {
 	}
 	defer pool.Close()
 
-	app := newApp(dependencies{cfg: cfg, log: log, pool: pool})
+	app, err := newApp(dependencies{cfg: cfg, log: log, pool: pool})
+	if err != nil {
+		return fmt.Errorf("susun aplikasi: %w", err)
+	}
 
 	errCh := make(chan error, 1)
 	go func() {

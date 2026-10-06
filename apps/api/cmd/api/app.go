@@ -12,8 +12,10 @@ import (
 
 	"github.com/benditandayusaputra/depotin/apps/api/internal/auth"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/config"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/customer"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/depot"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/clock"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/crypto"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/httpx"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/ratelimit"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/product"
@@ -35,13 +37,17 @@ type dependencies struct {
 	clock clock.Clock
 }
 
-func newApp(d dependencies) *fiber.App {
+func newApp(d dependencies) (*fiber.App, error) {
 	if d.clock == nil {
 		d.clock = clock.System{}
 	}
 	limiter := ratelimit.New(d.clock)
 	tokens := auth.NewTokenIssuer(d.cfg.JWTSecret)
 	cookies := auth.NewCookieWriter(d.cfg.CookieSecure)
+	sealer, err := crypto.NewSealer(d.cfg.LinkEncKey)
+	if err != nil {
+		return nil, err
+	}
 
 	app := fiber.New(fiber.Config{
 		AppName:          "depotin-api",
@@ -82,8 +88,9 @@ func newApp(d dependencies) *fiber.App {
 	depot.NewHandler(d.pool, nil).Register(v1, ownerOnly)
 	user.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
 	product.NewHandler(d.pool, nil).Register(v1, ownerOnly)
+	customer.NewHandler(d.pool, d.clock, customer.NewLinks(d.cfg.WebOrigin, sealer)).Register(v1, ownerOnly)
 
-	return app
+	return app, nil
 }
 
 func readyz(pool *pgxpool.Pool) fiber.Handler {
