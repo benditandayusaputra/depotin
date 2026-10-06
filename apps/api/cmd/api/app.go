@@ -97,7 +97,7 @@ func buildApp(d dependencies) (*fiber.App, *reminder.Service, error) {
 	links := customer.NewLinks(d.cfg.WebOrigin, sealer)
 
 	authSvc := auth.NewService(d.pool, d.clock, tokens)
-	auth.NewHandler(authSvc, cookies, d.clock, limiter).Register(v1.Group("/auth"))
+	auth.NewHandler(authSvc, cookies, d.clock, limiter, !d.cfg.IsProduction()).Register(v1.Group("/auth"))
 
 	ownerOnly := httpx.RequireRole(auth.RoleOwner)
 	user.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)

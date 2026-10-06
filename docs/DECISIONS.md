@@ -142,3 +142,9 @@ Hasil pada data contoh, API dan PostgreSQL di mesin yang sama, 100 permintaan be
 | `POST /orders` | 0,4 ms | 0,5 ms |
 
 Memori proses API setelah pengukuran: 31 MB. Di produksi, waktu tambahan berasal dari jarak jaringan VPS ke Neon (sekitar 1 sampai 5 ms per kueri di region yang sama) dan bangun tidur Neon yang dikecualikan dari target.
+
+## 2026-10-06: Batas pendaftaran dilonggarkan di lingkungan pengembangan
+
+Konteks: SPEC 10.7 membatasi `POST /auth/register` 3 per jam per IP. Di pengembangan lokal semua peramban dan Playwright berbagi satu alamat (`::1`), sehingga menjalankan e2e dua kali dalam satu jam sudah terblokir.
+
+Pilihan: pada `APP_ENV=development` batasnya 100 per jam per IP; produksi tetap 3 per jam. Aturan lain tidak berubah.

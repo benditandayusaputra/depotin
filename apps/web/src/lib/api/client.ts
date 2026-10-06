@@ -29,6 +29,7 @@ export interface ApiFetchInit {
 
 const API_BASE = '/api/v1';
 const REFRESH_PATH = '/auth/refresh';
+const NO_REFRESH_PATHS = new Set([REFRESH_PATH, '/auth/login', '/auth/register']);
 const FALLBACK_ERROR: ErrorBody = { code: 'internal', message: 'Terjadi gangguan. Coba lagi.' };
 
 let refreshInFlight: Promise<boolean> | null = null;
@@ -84,7 +85,8 @@ function sendRequest(path: string, init: ApiFetchInit): Promise<Response> {
 
 export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
   const first = await sendRequest(path, init);
-  const shouldRetry = first.status === 401 && path !== REFRESH_PATH && (await refreshSession());
+  const shouldRetry =
+    first.status === 401 && !NO_REFRESH_PATHS.has(path) && (await refreshSession());
   const response = shouldRetry ? await sendRequest(path, init) : first;
 
   if (!response.ok) {

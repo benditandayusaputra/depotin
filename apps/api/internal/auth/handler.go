@@ -15,23 +15,29 @@ import (
 )
 
 var (
-	loginRule    = ratelimit.Rule{Limit: 5, Window: time.Minute}
-	registerRule = ratelimit.Rule{Limit: 3, Window: time.Hour}
+	loginRule           = ratelimit.Rule{Limit: 5, Window: time.Minute}
+	registerRule        = ratelimit.Rule{Limit: 3, Window: time.Hour}
+	registerRuleRelaxed = ratelimit.Rule{Limit: 100, Window: time.Hour}
 )
 
 type Handler struct {
-	svc     *Service
-	cookies CookieWriter
-	clock   clock.Clock
-	limiter *ratelimit.Limiter
+	svc          *Service
+	cookies      CookieWriter
+	clock        clock.Clock
+	limiter      *ratelimit.Limiter
+	registerRule ratelimit.Rule
 }
 
-func NewHandler(svc *Service, cookies CookieWriter, clk clock.Clock, limiter *ratelimit.Limiter) *Handler {
-	return &Handler{svc: svc, cookies: cookies, clock: clk, limiter: limiter}
+func NewHandler(svc *Service, cookies CookieWriter, clk clock.Clock, limiter *ratelimit.Limiter, relaxedRegister bool) *Handler {
+	rule := registerRule
+	if relaxedRegister {
+		rule = registerRuleRelaxed
+	}
+	return &Handler{svc: svc, cookies: cookies, clock: clk, limiter: limiter, registerRule: rule}
 }
 
 func (h *Handler) Register(r fiber.Router) {
-	r.Post("/register", httpx.RateLimitByIP(h.limiter, registerRule, "register"), h.register)
+	r.Post("/register", httpx.RateLimitByIP(h.limiter, h.registerRule, "register"), h.register)
 	r.Post("/login", h.login)
 	r.Post("/refresh", h.refresh)
 	r.Post("/logout", h.logout)
