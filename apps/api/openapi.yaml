@@ -1034,8 +1034,93 @@ paths:
           description: text/event-stream dengan peristiwa ready, order.created, order.updated, reminder.queued
         "401":
           $ref: "#/components/responses/Error"
+  /dashboard/today:
+    get:
+      operationId: dashboardToday
+      summary: Angka hari ini untuk pemilik
+      responses:
+        "200":
+          description: Dasbor
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/DashboardToday"
+  /reports/summary:
+    get:
+      operationId: reportSummary
+      summary: Ringkasan rentang tanggal, bawaan 30 hari terakhir
+      parameters:
+        - $ref: "#/components/parameters/FromDate"
+        - $ref: "#/components/parameters/ToDate"
+      responses:
+        "200":
+          description: Ringkasan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ReportSummary"
+        "422":
+          $ref: "#/components/responses/Error"
+  /reports/export.csv:
+    get:
+      operationId: exportReport
+      summary: Ekspor pesanan selesai dalam rentang tanggal sebagai CSV
+      parameters:
+        - $ref: "#/components/parameters/FromDate"
+        - $ref: "#/components/parameters/ToDate"
+      responses:
+        "200":
+          description: Berkas CSV
+          content:
+            text/csv:
+              schema:
+                type: string
+        "422":
+          $ref: "#/components/responses/Error"
+  /audit:
+    get:
+      operationId: listAuditLogs
+      summary: Log aktivitas depot
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Log audit
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AuditLog"
+                  meta:
+                    $ref: "#/components/schemas/Cursor"
 components:
   parameters:
+    FromDate:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date
+    ToDate:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date
     Token:
       name: token
       in: path
@@ -2074,6 +2159,97 @@ components:
           format: uuid
         customer:
           $ref: "#/components/schemas/Customer"
+    DashboardToday:
+      type: object
+      required: [date, orders_by_status, revenue, gallons_sold, delivered_orders, expected_demand, reminders_queued, gallons_on_loan, customers_due]
+      properties:
+        date:
+          type: string
+          format: date
+        orders_by_status:
+          type: object
+          additionalProperties:
+            type: integer
+        revenue:
+          type: integer
+        gallons_sold:
+          type: integer
+        delivered_orders:
+          type: integer
+        expected_demand:
+          type: integer
+        reminders_queued:
+          type: integer
+        gallons_on_loan:
+          type: integer
+        customers_due:
+          type: integer
+    ReportSummary:
+      type: object
+      required: [from, to, revenue, gallons_sold, delivered_orders, orders_by_source, reminders_sent, reminders_converted, conversion_rate, new_customers, active_customers, daily]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        revenue:
+          type: integer
+        gallons_sold:
+          type: integer
+        delivered_orders:
+          type: integer
+        orders_by_source:
+          type: object
+          additionalProperties:
+            type: integer
+        reminders_sent:
+          type: integer
+        reminders_converted:
+          type: integer
+        conversion_rate:
+          type: number
+        new_customers:
+          type: integer
+        active_customers:
+          type: integer
+        daily:
+          type: array
+          items:
+            type: object
+            required: [day, revenue, gallons]
+            properties:
+              day:
+                type: string
+                format: date
+              revenue:
+                type: integer
+              gallons:
+                type: integer
+    AuditLog:
+      type: object
+      required: [id, user_id, action, entity_type, entity_id, meta, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: [string, "null"]
+          format: uuid
+        action:
+          type: string
+        entity_type:
+          type: string
+        entity_id:
+          type: [string, "null"]
+          format: uuid
+        meta:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
     SessionResponse:
       type: object
       required: [data]

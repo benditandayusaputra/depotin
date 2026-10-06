@@ -30,3 +30,9 @@ SET name = COALESCE(sqlc.narg('name'), name),
     updated_at = now()
 WHERE id = $1
 RETURNING *;
+
+-- name: ListDepots :many
+SELECT * FROM depots ORDER BY created_at;
+
+-- name: ListDemoDepots :many
+SELECT * FROM depots WHERE is_demo ORDER BY created_at;

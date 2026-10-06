@@ -23,6 +23,7 @@ import (
 	"github.com/benditandayusaputra/depotin/apps/api/internal/product"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/public"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/reminder"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/report"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/stream"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/user"
 )
@@ -107,6 +108,7 @@ func newApp(d dependencies) (*fiber.App, error) {
 	product.NewHandler(d.pool, publicHandler.InvalidateDepotByID).Register(v1, ownerOnly)
 	reminderSvc := reminder.NewService(d.pool, d.clock, links, publisher)
 	reminder.NewHandler(reminderSvc).Register(v1, ownerOnly)
+	report.NewHandler(d.pool, d.clock, reminderSvc).Register(v1, ownerOnly)
 	stream.NewHandler(hub, stream.NewTicketStore(d.clock), limiter, d.cfg.WebOrigin).Register(v1, auth.RequireLogin())
 	app.Hooks().OnPreShutdown(func() error {
 		hub.CloseAll()

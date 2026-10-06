@@ -120,6 +120,94 @@ func (q *Queries) GetDepotBySlug(ctx context.Context, slug string) (Depot, error
 	return i, err
 }
 
+const listDemoDepots = `-- name: ListDemoDepots :many
+SELECT id, name, slug, phone, address, lat, lng, timezone, open_time, close_time, delivery_fee, is_accepting_orders, auto_confirm_known, loyalty_every, reminder_lead_days, default_days_per_gallon, is_demo, created_at, updated_at FROM depots WHERE is_demo ORDER BY created_at
+`
+
+func (q *Queries) ListDemoDepots(ctx context.Context) ([]Depot, error) {
+	rows, err := q.db.Query(ctx, listDemoDepots)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Depot{}
+	for rows.Next() {
+		var i Depot
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Phone,
+			&i.Address,
+			&i.Lat,
+			&i.Lng,
+			&i.Timezone,
+			&i.OpenTime,
+			&i.CloseTime,
+			&i.DeliveryFee,
+			&i.IsAcceptingOrders,
+			&i.AutoConfirmKnown,
+			&i.LoyaltyEvery,
+			&i.ReminderLeadDays,
+			&i.DefaultDaysPerGallon,
+			&i.IsDemo,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDepots = `-- name: ListDepots :many
+SELECT id, name, slug, phone, address, lat, lng, timezone, open_time, close_time, delivery_fee, is_accepting_orders, auto_confirm_known, loyalty_every, reminder_lead_days, default_days_per_gallon, is_demo, created_at, updated_at FROM depots ORDER BY created_at
+`
+
+func (q *Queries) ListDepots(ctx context.Context) ([]Depot, error) {
+	rows, err := q.db.Query(ctx, listDepots)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Depot{}
+	for rows.Next() {
+		var i Depot
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Phone,
+			&i.Address,
+			&i.Lat,
+			&i.Lng,
+			&i.Timezone,
+			&i.OpenTime,
+			&i.CloseTime,
+			&i.DeliveryFee,
+			&i.IsAcceptingOrders,
+			&i.AutoConfirmKnown,
+			&i.LoyaltyEvery,
+			&i.ReminderLeadDays,
+			&i.DefaultDaysPerGallon,
+			&i.IsDemo,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const slugExists = `-- name: SlugExists :one
 SELECT EXISTS (SELECT 1 FROM depots WHERE slug = $1)
 `

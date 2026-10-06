@@ -758,6 +758,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dashboard/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Angka hari ini untuk pemilik */
+        get: operations["dashboardToday"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ringkasan rentang tanggal, bawaan 30 hari terakhir */
+        get: operations["reportSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ekspor pesanan selesai dalam rentang tanggal sebagai CSV */
+        get: operations["exportReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Log aktivitas depot */
+        get: operations["listAuditLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1192,6 +1260,58 @@ export interface components {
             order_id: string | null;
             customer: components["schemas"]["Customer"];
         };
+        DashboardToday: {
+            /** Format: date */
+            date: string;
+            orders_by_status: {
+                [key: string]: number;
+            };
+            revenue: number;
+            gallons_sold: number;
+            delivered_orders: number;
+            expected_demand: number;
+            reminders_queued: number;
+            gallons_on_loan: number;
+            customers_due: number;
+        };
+        ReportSummary: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            revenue: number;
+            gallons_sold: number;
+            delivered_orders: number;
+            orders_by_source: {
+                [key: string]: number;
+            };
+            reminders_sent: number;
+            reminders_converted: number;
+            conversion_rate: number;
+            new_customers: number;
+            active_customers: number;
+            daily: {
+                /** Format: date */
+                day: string;
+                revenue: number;
+                gallons: number;
+            }[];
+        };
+        AuditLog: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            user_id: string | null;
+            action: string;
+            entity_type: string;
+            /** Format: uuid */
+            entity_id: string | null;
+            meta: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            created_at: string;
+        };
         SessionResponse: {
             data: {
                 user: components["schemas"]["User"];
@@ -1242,6 +1362,8 @@ export interface components {
         };
     };
     parameters: {
+        FromDate: string;
+        ToDate: string;
         Token: string;
         IdempotencyKey: string;
         Cursor: string;
@@ -2496,6 +2618,104 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["Error"];
+        };
+    };
+    dashboardToday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dasbor */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DashboardToday"];
+                    };
+                };
+            };
+        };
+    };
+    reportSummary: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["FromDate"];
+                to?: components["parameters"]["ToDate"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ringkasan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReportSummary"];
+                    };
+                };
+            };
+            422: components["responses"]["Error"];
+        };
+    };
+    exportReport: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["FromDate"];
+                to?: components["parameters"]["ToDate"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Berkas CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            422: components["responses"]["Error"];
+        };
+    };
+    listAuditLogs: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Log audit */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AuditLog"][];
+                        meta: components["schemas"]["Cursor"];
+                    };
+                };
+            };
         };
     };
 }
