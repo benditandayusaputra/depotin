@@ -148,3 +148,11 @@ Memori proses API setelah pengukuran: 31 MB. Di produksi, waktu tambahan berasal
 Konteks: SPEC 10.7 membatasi `POST /auth/register` 3 per jam per IP. Di pengembangan lokal semua peramban dan Playwright berbagi satu alamat (`::1`), sehingga menjalankan e2e dua kali dalam satu jam sudah terblokir.
 
 Pilihan: pada `APP_ENV=development` batasnya 100 per jam per IP; produksi tetap 3 per jam. Aturan lain tidak berubah.
+
+## 2026-10-06: Neon lewat pooler sudah diuji
+
+Konteks: skema dimigrasikan dan data contoh dimuat ke proyek Neon milik pengguna lewat string koneksi `-pooler` (ap-southeast-1).
+
+Hasil: API berjalan tanpa galat terhadap pooler, termasuk prepared statement bawaan pgx. Dari mesin pengembang di Indonesia, `GET /orders` 130 ms pada permintaan pertama dan 67 ms setelahnya, `GET /dashboard/today` 295 ms karena beberapa kueri berurutan. Seed penuh memakan 190 detik karena ribuan kueri kecil melintasi jaringan, sehingga setel ulang demo harian dijalankan di VPS yang satu region dengan Neon. Target p95 SPEC diukur di dalam satu region, bukan dari luar negeri.
+
+`apps/api/.env` lokal (tidak di-commit) mengarah ke Neon agar `make api` memakai basis data yang sama dengan demo, sementara `make test-api` tetap memakai PostgreSQL Docker.

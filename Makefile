@@ -7,7 +7,7 @@ WEB_DIR := apps/web
 DEV_DB_URL ?= postgres://depotin:depotin@localhost:54329/depotin?sslmode=disable
 MIGRATIONS := $(API_DIR)/db/migrations
 
-.PHONY: dev dev-down check test test-api test-web lint lint-api lint-web migrate-up migrate-down sqlc seed types api web fmt
+.PHONY: dev dev-down check test test-api test-web lint lint-api lint-web migrate-up migrate-down migrate-neon seed-neon sqlc seed types api web fmt sqlc-diff
 
 dev:
 	docker compose -f docker-compose.dev.yml up -d --wait
@@ -16,10 +16,16 @@ dev-down:
 	docker compose -f docker-compose.dev.yml down
 
 api:
-	cd $(API_DIR) && go run ./cmd/api
+	cd $(API_DIR) && set -a && ([ -f .env ] && . ./.env || true) && set +a && go run ./cmd/api
 
 web:
-	cd $(WEB_DIR) && npm run dev
+	cd $(WEB_DIR) && set -a && ([ -f .env ] && . ./.env || true) && set +a && npm run dev
+
+migrate-neon:
+	cd $(API_DIR) && set -a && ([ -f .env ] && . ./.env || true) && set +a && go run ./cmd/migrate up
+
+seed-neon:
+	cd $(API_DIR) && set -a && ([ -f .env ] && . ./.env || true) && set +a && go run ./cmd/seed
 
 fmt:
 	cd $(API_DIR) && gofmt -w .
