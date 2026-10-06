@@ -16,6 +16,7 @@ import (
 
 var (
 	loginRule           = ratelimit.Rule{Limit: 5, Window: time.Minute}
+	loginRuleRelaxed    = ratelimit.Rule{Limit: 100, Window: time.Minute}
 	registerRule        = ratelimit.Rule{Limit: 3, Window: time.Hour}
 	registerRuleRelaxed = ratelimit.Rule{Limit: 100, Window: time.Hour}
 )
@@ -25,15 +26,16 @@ type Handler struct {
 	cookies      CookieWriter
 	clock        clock.Clock
 	limiter      *ratelimit.Limiter
+	loginRule    ratelimit.Rule
 	registerRule ratelimit.Rule
 }
 
-func NewHandler(svc *Service, cookies CookieWriter, clk clock.Clock, limiter *ratelimit.Limiter, relaxedRegister bool) *Handler {
-	rule := registerRule
-	if relaxedRegister {
-		rule = registerRuleRelaxed
+func NewHandler(svc *Service, cookies CookieWriter, clk clock.Clock, limiter *ratelimit.Limiter, relaxedLimits bool) *Handler {
+	h := &Handler{svc: svc, cookies: cookies, clock: clk, limiter: limiter, loginRule: loginRule, registerRule: registerRule}
+	if relaxedLimits {
+		h.loginRule, h.registerRule = loginRuleRelaxed, registerRuleRelaxed
 	}
-	return &Handler{svc: svc, cookies: cookies, clock: clk, limiter: limiter, registerRule: rule}
+	return h
 }
 
 func (h *Handler) Register(r fiber.Router) {
@@ -94,7 +96,7 @@ func (h *Handler) login(c fiber.Ctx) error {
 	if err != nil {
 		return httpx.Fail(c, httpx.Unauthenticated().WithMessage(ErrInvalidCredentials))
 	}
-	if err := httpx.CheckLimit(c, h.limiter, loginRule, "login:"+httpx.ClientIP(c)+":"+normalized); err != nil {
+	if err := httpx.CheckLimit(c, h.limiter, h.loginRule, "login:"+httpx.ClientIP(c)+":"+normalized); err != nil {
 		return httpx.Fail(c, err)
 	}
 	u, tokens, err := h.svc.Login(c.Context(), normalized, req.Password, h.meta(c))

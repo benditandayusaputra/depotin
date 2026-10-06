@@ -9,21 +9,27 @@ import {
 const PASSWORD = 'demo-depotin-2026';
 const OWNER_PHONE = '081200000001';
 const COURIER_PHONE = '081200000002';
-const BASE_URL = 'http://localhost:5173';
 const LOGIN_ATTEMPTS = 4;
-const HEADERS = { origin: BASE_URL };
+
+function baseUrl(): string {
+  return base.info().project.use.baseURL ?? 'http://localhost:5173';
+}
+
+function originHeaders(): Record<string, string> {
+  return { origin: baseUrl() };
+}
 
 interface Envelope<T> {
   data: T;
 }
 
 async function loginState(browser: Browser, phone: string, name: string): Promise<string> {
-  const context = await browser.newContext({ baseURL: BASE_URL });
+  const context = await browser.newContext({ baseURL: baseUrl() });
   try {
     for (let attempt = 1; attempt <= LOGIN_ATTEMPTS; attempt += 1) {
       const response = await context.request.post('/api/v1/auth/login', {
         data: { phone, password: PASSWORD },
-        headers: HEADERS
+        headers: originHeaders()
       });
       if (response.ok()) {
         const file = test.info().outputPath(`${name}-state.json`);
@@ -67,7 +73,7 @@ async function call<T>(
   const response = await request.fetch(`/api/v1${path}`, {
     method,
     data,
-    headers: { ...HEADERS, 'idempotency-key': crypto.randomUUID() }
+    headers: { ...originHeaders(), 'idempotency-key': crypto.randomUUID() }
   });
   if (!response.ok()) {
     throw new Error(
@@ -169,7 +175,7 @@ test('alur A: pengingat, pesan dari link pribadi, antar oleh kurir, konversi ter
     await expect(row.getByRole('button', { name: 'Kirim WA' })).toHaveCount(0);
     const personalPath = personalPathFromWa(waUrl);
 
-    const customerContext = await browser.newContext({ baseURL: BASE_URL });
+    const customerContext = await browser.newContext({ baseURL: baseUrl() });
     let code = '';
     try {
       const customerPage = await customerContext.newPage();
@@ -202,7 +208,7 @@ test('alur A: pengingat, pesan dari link pribadi, antar oleh kurir, konversi ter
     await expect(page.getByRole('definition').filter({ hasText: 'Andi' })).toBeVisible();
 
     const courierContext = await browser.newContext({
-      baseURL: BASE_URL,
+      baseURL: baseUrl(),
       storageState: courierState
     });
     try {

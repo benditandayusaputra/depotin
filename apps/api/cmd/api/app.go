@@ -34,7 +34,10 @@ const (
 	healthPath     = "/healthz"
 )
 
-var globalRule = ratelimit.Rule{Limit: 300, Window: time.Minute}
+var (
+	globalRule        = ratelimit.Rule{Limit: 300, Window: time.Minute}
+	globalRuleRelaxed = ratelimit.Rule{Limit: 5000, Window: time.Minute}
+)
 
 type dependencies struct {
 	cfg           config.Config
@@ -82,7 +85,11 @@ func buildApp(d dependencies) (*fiber.App, *reminder.Service, error) {
 		path := c.Path()
 		return path == healthPath || (path == streamPath && c.Method() == http.MethodGet)
 	}))
-	app.Use(httpx.RateLimitByIP(limiter, globalRule, "global"))
+	perIP := globalRule
+	if d.relaxedLimits {
+		perIP = globalRuleRelaxed
+	}
+	app.Use(httpx.RateLimitByIP(limiter, perIP, "global"))
 
 	app.Get(healthPath, func(c fiber.Ctx) error {
 		return httpx.OK(c, fiber.Map{"status": "ok"})

@@ -173,7 +173,7 @@ Diukur dengan `go test -race -coverpkg=./internal/... ./...` termasuk tes HTTP d
 | internal/public | 81,3% |
 | internal/reminder | 80,3% |
 
-Tambahan: batas pesanan publik per IP dan per nomor juga dilonggarkan menjadi 100 pada `APP_ENV=development` dengan alasan yang sama. Tes HTTP di `cmd/api` menyusun aplikasi tanpa pelonggaran sehingga tetap memverifikasi batas asli (5 per 10 menit per IP, 3 per jam per nomor, 3 pendaftaran per jam).
+Tambahan: batas pesanan publik per IP dan per nomor, serta batas masuk per IP dan nomor, juga dilonggarkan menjadi 100 pada `APP_ENV=development` dengan alasan yang sama (suite Playwright masuk sebagai pemilik berkali-kali dalam satu menit). Batas global 300 per menit per IP menjadi 5000 di development karena dua suite berturut-turut dari satu alamat melampauinya. Tes HTTP di `cmd/api` menyusun aplikasi tanpa pelonggaran sehingga tetap memverifikasi batas asli (5 per 10 menit per IP, 3 per jam per nomor, 3 pendaftaran per jam).
 
 ## 2026-10-06: Koneksi SSE terbaru menggantikan yang tertua
 
@@ -184,3 +184,12 @@ Pilihan: batas 3 tetap, tetapi saat penuh hub memutus koneksi tertua milik pengg
 ## 2026-10-06: Urutan antrean pengingat
 
 Antrean diurutkan dari pelanggan yang perkiraan habisnya paling dekat dengan hari ini (selisih absolut terkecil), bukan dari yang paling lama lewat. Pelanggan yang sudah lama lewat tetap masuk antrean, tetapi muncul di bawah, karena mereka juga tampil di filter Berisiko.
+
+## 2026-10-06: Hasil audit aksesibilitas, responsif, dan Lighthouse
+
+Diukur pada data contoh dengan axe-core 4.10.2 (WCAG 2.1 A dan AA), lebar 360 dan 1280, mode terang dan gelap, untuk 17 halaman: beranda, masuk, daftar, halaman publik depot, pelacakan, link pribadi, seluruh halaman pemilik, dan halaman kurir.
+
+- axe: nol pelanggaran di semua halaman setelah perbaikan. Perbaikan yang dilakukan: kontras token `--color-status-pending` (#92400e) dan `--color-status-done` (#166534) menjadi di atas 6:1, warna placeholder, tautan Daftar di mode gelap, judul dokumen cadangan saat sesi gagal, target sentuh tautan sebaris minimal 44 piksel, badge dan teks halaman pelanggan dan kurir minimal 16 piksel, fokus masuk ke lembar penyelesaian kurir dan kembali ke tombol pembuka saat ditutup, Escape menutup lembar dan menu tunda, cincin fokus tidak terpotong di baris chip.
+- Responsif: tidak ada luapan mendatar di 360, 768, dan 1280. Target sentuh 48 piksel di halaman kurir dan pelanggan, 44 piksel di dasbor. Pengecualian: kotak centang asli `Toggle` berukuran 24 piksel di dalam label setinggi 48 piksel.
+- Lighthouse 13.5 (emulasi seluler, build produksi): beranda 100/100/100, halaman publik depot 99/100/100, link pribadi 99/100/100 untuk performa, aksesibilitas, praktik terbaik. LCP 1,5 sampai 2,0 detik, TBT 0 ms, CLS 0.
+- JavaScript awal rute `/p/[token]`: 52,9 KB gzip (target 70 KB).

@@ -17,9 +17,11 @@
 
 ## Tahap berjalan
 
-- Tahap 7 gerbang: Playwright Alur A lolos (`tests/alur-a.spec.ts`).
-- Tahap 11: pengerasan. Sudah: EXPLAIN, pengukuran p95 lokal, govulncheck dan npm audit, SECURITY_CHECKLIST, cakupan tes. Berjalan: audit aksesibilitas, uji lebar 360/768/1280, Lighthouse.
-- Tahap 12 sisa: tangkapan layar untuk README dan proposal (berjalan).
+Tidak ada. Pekerjaan berikutnya adalah deploy oleh pengguna.
+
+- Tahap 11: pengerasan selesai. EXPLAIN, p95 lokal, govulncheck dan npm audit, SECURITY_CHECKLIST, cakupan tes, audit axe nol pelanggaran, lebar 360/768/1280, Lighthouse 99 sampai 100. Hasil di `DECISIONS.md`.
+- Tahap 12: selesai kecuali deploy sungguhan yang menunggu pengguna. Tangkapan layar di `docs/screenshots/`.
+- Tiga alur utama lolos Playwright di HP dan desktop: `tests/alur-a.spec.ts`, `tests/public.spec.ts` (Alur B), `tests/owner.spec.ts` (Alur C).
 
 ## Ditunda
 
