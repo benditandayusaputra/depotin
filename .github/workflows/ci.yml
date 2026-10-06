@@ -1,0 +1,128 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: depotin
+          POSTGRES_PASSWORD: depotin
+          POSTGRES_DB: depotin
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U depotin -d depotin"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+      - name: Alat
+        run: |
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Format
+        run: test -z "$(gofmt -l .)"
+      - name: Vet
+        run: go vet ./...
+      - name: Lint
+        run: golangci-lint run ./...
+      - name: sqlc diff
+        run: sqlc diff
+      - name: Tes
+        env:
+          DATABASE_URL: postgres://depotin:depotin@localhost:54329/depotin?sslmode=disable
+        run: go test -race -count=1 ./...
+      - name: govulncheck
+        run: govulncheck ./...
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - name: Tipe dari openapi
+        run: |
+          npm run types
+          git diff --exit-code -- src/lib/api/schema.d.ts
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+      - run: npm audit --omit=dev
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [api, web]
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: depotin
+          POSTGRES_PASSWORD: depotin
+          POSTGRES_DB: depotin
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U depotin -d depotin"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://depotin:depotin@localhost:54329/depotin?sslmode=disable
+      EDGE_KEY: ci-edge-key-ci-edge-key-ci-edge-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Migrasi dan data contoh
+        working-directory: apps/api
+        run: |
+          go run ./cmd/migrate up
+      - name: Jalankan API
+        working-directory: apps/api
+        run: |
+          go build -o /tmp/depotin-api ./cmd/api
+          APP_ENV=development HTTP_ADDR=:8080 WEB_ORIGIN=http://localhost:5173 /tmp/depotin-api &
+      - name: Web
+        working-directory: apps/web
+        env:
+          API_ORIGIN: http://localhost:8080
+          PUBLIC_STREAM_ORIGIN: http://localhost:8080
+          PUBLIC_DEMO_MODE: "true"
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:e2e
