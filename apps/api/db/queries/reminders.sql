@@ -53,3 +53,8 @@ SELECT
   count(*) FILTER (WHERE status = 'ordered')::bigint AS ordered
 FROM reminders
 WHERE depot_id = $1 AND sent_at >= sqlc.arg('from_at')::timestamptz AND sent_at < sqlc.arg('to_at')::timestamptz;
+
+-- name: InsertReminder :one
+INSERT INTO reminders (id, depot_id, customer_id, due_date, predicted_empty_at, status, sent_at, sent_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING *;

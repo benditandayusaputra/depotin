@@ -68,7 +68,7 @@ LIMIT $2;
 SELECT customers.* FROM customers
 WHERE customers.depot_id = $1 AND is_active AND is_verified
   AND last_delivered_at IS NOT NULL AND days_per_gallon IS NOT NULL AND last_delivered_qty IS NOT NULL
-  AND sqlc.arg('now')::timestamptz > last_delivered_at + make_interval(days => 2 * last_delivered_qty * days_per_gallon)
+  AND sqlc.arg('now')::timestamptz > last_delivered_at + (2 * last_delivered_qty * days_per_gallon) * interval '1 day'
   AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = customers.id AND o.status IN ('pending', 'confirmed', 'on_delivery'))
 ORDER BY last_delivered_at, id
 LIMIT $2;

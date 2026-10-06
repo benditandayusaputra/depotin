@@ -111,6 +111,7 @@ jobs:
         working-directory: apps/api
         run: |
           go run ./cmd/migrate up
+          go run ./cmd/seed
       - name: Jalankan API
         working-directory: apps/api
         run: |

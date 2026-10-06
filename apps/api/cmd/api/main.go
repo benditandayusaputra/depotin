@@ -13,7 +13,10 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/benditandayusaputra/depotin/apps/api/internal/config"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/clock"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/db"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/scheduler"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/seed"
 )
 
 const shutdownTimeout = 15 * time.Second
@@ -43,10 +46,22 @@ func run() error {
 	}
 	defer pool.Close()
 
-	app, err := newApp(dependencies{cfg: cfg, log: log, pool: pool})
+	clk := clock.System{}
+	app, reminders, err := buildApp(dependencies{cfg: cfg, log: log, pool: pool, clock: clk})
 	if err != nil {
 		return fmt.Errorf("susun aplikasi: %w", err)
 	}
+
+	var resetDemo func(ctx context.Context) error
+	if cfg.DemoResetHour >= 0 {
+		resetDemo = func(ctx context.Context) error {
+			return seed.Reset(ctx, pool, clk.Now(), cfg.WebOrigin, cfg.LinkEncKey)
+		}
+	}
+	jobs := scheduler.New(pool, clk, log, reminders, resetDemo, scheduler.Config{
+		DemoResetHour: cfg.DemoResetHour, KeepaliveUntil: cfg.DBKeepaliveUntil,
+	})
+	go jobs.Run(ctx)
 
 	errCh := make(chan error, 1)
 	go func() {

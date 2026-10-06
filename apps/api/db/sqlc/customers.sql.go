@@ -267,7 +267,7 @@ const listAtRiskCustomers = `-- name: ListAtRiskCustomers :many
 SELECT customers.id, customers.depot_id, customers.name, customers.phone, customers.address, customers.address_note, customers.area, customers.lat, customers.lng, customers.token_hash, customers.token_enc, customers.token_rotated_at, customers.source, customers.is_verified, customers.usual_qty, customers.loan_balance, customers.stamp_count, customers.days_per_gallon, customers.prediction_samples, customers.prediction_confidence, customers.last_delivered_at, customers.last_delivered_qty, customers.predicted_empty_at, customers.reminder_snoozed_until, customers.is_active, customers.created_at, customers.updated_at FROM customers
 WHERE customers.depot_id = $1 AND is_active AND is_verified
   AND last_delivered_at IS NOT NULL AND days_per_gallon IS NOT NULL AND last_delivered_qty IS NOT NULL
-  AND $3::timestamptz > last_delivered_at + make_interval(days => 2 * last_delivered_qty * days_per_gallon)
+  AND $3::timestamptz > last_delivered_at + (2 * last_delivered_qty * days_per_gallon) * interval '1 day'
   AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = customers.id AND o.status IN ('pending', 'confirmed', 'on_delivery'))
 ORDER BY last_delivered_at, id
 LIMIT $2

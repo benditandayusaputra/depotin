@@ -44,6 +44,11 @@ type dependencies struct {
 }
 
 func newApp(d dependencies) (*fiber.App, error) {
+	app, _, err := buildApp(d)
+	return app, err
+}
+
+func buildApp(d dependencies) (*fiber.App, *reminder.Service, error) {
 	if d.clock == nil {
 		d.clock = clock.System{}
 	}
@@ -52,7 +57,7 @@ func newApp(d dependencies) (*fiber.App, error) {
 	cookies := auth.NewCookieWriter(d.cfg.CookieSecure)
 	sealer, err := crypto.NewSealer(d.cfg.LinkEncKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	app := fiber.New(fiber.Config{
@@ -108,6 +113,7 @@ func newApp(d dependencies) (*fiber.App, error) {
 	product.NewHandler(d.pool, publicHandler.InvalidateDepotByID).Register(v1, ownerOnly)
 	reminderSvc := reminder.NewService(d.pool, d.clock, links, publisher)
 	reminder.NewHandler(reminderSvc).Register(v1, ownerOnly)
+
 	report.NewHandler(d.pool, d.clock, reminderSvc).Register(v1, ownerOnly)
 	stream.NewHandler(hub, stream.NewTicketStore(d.clock), limiter, d.cfg.WebOrigin).Register(v1, auth.RequireLogin())
 	app.Hooks().OnPreShutdown(func() error {
@@ -115,7 +121,7 @@ func newApp(d dependencies) (*fiber.App, error) {
 		return nil
 	})
 
-	return app, nil
+	return app, reminderSvc, nil
 }
 
 func readyz(pool *pgxpool.Pool) fiber.Handler {

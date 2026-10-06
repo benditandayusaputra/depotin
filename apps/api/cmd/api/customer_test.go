@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/crypto"
 )
@@ -193,4 +194,27 @@ func TestCustomerSnooze(t *testing.T) {
 	if view.Snoozed == nil || *view.Snoozed != "2026-10-09" {
 		t.Fatalf("snoozed until %v", view.Snoozed)
 	}
+}
+
+func TestCustomerFiltersDueAtRiskLoan(t *testing.T) {
+	f := setupOrders(t, "3200")
+	f.owner.mustStatus(f.owner.do(http.MethodPatch, "/api/v1/depot", map[string]any{"default_days_per_gallon": 0.5}), http.StatusOK)
+	v := f.dispatchedOrder(2)
+	f.courier.mustStatus(f.courier.do(http.MethodPost, "/api/v1/orders/"+v.ID+"/deliver", map[string]any{"gallons_returned": 1, "payment_method": "cash", "paid": true}), http.StatusOK)
+
+	if due := f.owner.listCustomers("?filter=due"); len(due) != 1 || due[0].ID != f.customer.ID {
+		t.Fatalf("due %+v", due)
+	}
+	if loan := f.owner.listCustomers("?filter=loan"); len(loan) != 1 || loan[0].LoanBalance != 1 {
+		t.Fatalf("loan %+v", loan)
+	}
+	if risk := f.owner.listCustomers("?filter=at_risk"); len(risk) != 0 {
+		t.Fatalf("not yet at risk %+v", risk)
+	}
+	f.h.clock.Advance(3 * 24 * time.Hour)
+	f.relogin("3200")
+	if risk := f.owner.listCustomers("?filter=at_risk"); len(risk) != 1 || risk[0].ID != f.customer.ID {
+		t.Fatalf("at risk %+v", risk)
+	}
+	f.owner.mustStatus(f.owner.do(http.MethodGet, "/api/v1/customers?filter=bogus", nil), http.StatusUnprocessableEntity)
 }

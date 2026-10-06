@@ -73,6 +73,50 @@ func (q *Queries) GetReminder(ctx context.Context, arg GetReminderParams) (Remin
 	return i, err
 }
 
+const insertReminder = `-- name: InsertReminder :one
+INSERT INTO reminders (id, depot_id, customer_id, due_date, predicted_empty_at, status, sent_at, sent_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, depot_id, customer_id, due_date, predicted_empty_at, status, sent_at, sent_by, order_id, created_at
+`
+
+type InsertReminderParams struct {
+	ID               uuid.UUID
+	DepotID          uuid.UUID
+	CustomerID       uuid.UUID
+	DueDate          time.Time
+	PredictedEmptyAt time.Time
+	Status           string
+	SentAt           *time.Time
+	SentBy           *uuid.UUID
+}
+
+func (q *Queries) InsertReminder(ctx context.Context, arg InsertReminderParams) (Reminder, error) {
+	row := q.db.QueryRow(ctx, insertReminder,
+		arg.ID,
+		arg.DepotID,
+		arg.CustomerID,
+		arg.DueDate,
+		arg.PredictedEmptyAt,
+		arg.Status,
+		arg.SentAt,
+		arg.SentBy,
+	)
+	var i Reminder
+	err := row.Scan(
+		&i.ID,
+		&i.DepotID,
+		&i.CustomerID,
+		&i.DueDate,
+		&i.PredictedEmptyAt,
+		&i.Status,
+		&i.SentAt,
+		&i.SentBy,
+		&i.OrderID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listReminders = `-- name: ListReminders :many
 SELECT reminders.id, reminders.depot_id, reminders.customer_id, reminders.due_date, reminders.predicted_empty_at, reminders.status, reminders.sent_at, reminders.sent_by, reminders.order_id, reminders.created_at, customers.id, customers.depot_id, customers.name, customers.phone, customers.address, customers.address_note, customers.area, customers.lat, customers.lng, customers.token_hash, customers.token_enc, customers.token_rotated_at, customers.source, customers.is_verified, customers.usual_qty, customers.loan_balance, customers.stamp_count, customers.days_per_gallon, customers.prediction_samples, customers.prediction_confidence, customers.last_delivered_at, customers.last_delivered_qty, customers.predicted_empty_at, customers.reminder_snoozed_until, customers.is_active, customers.created_at, customers.updated_at
 FROM reminders
