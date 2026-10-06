@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,6 +27,7 @@ const (
 	refreshTokenBytes = 32
 	maxUserAgentChars = 200
 	maxSlugAttempts   = 20
+	maxSlugRetries    = 3
 )
 
 var (
@@ -72,19 +74,36 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (sqlc.User, sq
 	var user sqlc.User
 	var depot sqlc.Depot
 	var tokens Tokens
-	err = db.WithTx(ctx, s.pool, func(tx pgx.Tx) error {
+	for attempt := 0; ; attempt++ {
+		err = s.registerTx(ctx, in, hash, attempt > 0, &user, &depot, &tokens)
+		if err == nil || attempt >= maxSlugRetries || !isSlugCollision(err) {
+			break
+		}
+	}
+	if err != nil {
+		return sqlc.User{}, sqlc.Depot{}, Tokens{}, err
+	}
+	return user, depot, tokens, nil
+}
+
+func isSlugCollision(err error) bool {
+	return db.IsUniqueViolation(err) && db.ConstraintName(err) == "depots_slug_key"
+}
+
+func (s *Service) registerTx(ctx context.Context, in RegisterInput, hash string, forceSuffix bool, user *sqlc.User, depot *sqlc.Depot, tokens *Tokens) error {
+	return db.WithTx(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
-		slug, err := s.uniqueSlug(ctx, q, in.DepotName)
+		slug, err := s.uniqueSlug(ctx, q, in.DepotName, forceSuffix)
 		if err != nil {
 			return err
 		}
-		depot, err = q.CreateDepot(ctx, sqlc.CreateDepotParams{
+		*depot, err = q.CreateDepot(ctx, sqlc.CreateDepotParams{
 			ID: idgen.NewID(), Name: in.DepotName, Slug: slug, Phone: in.Phone,
 		})
 		if err != nil {
 			return fmt.Errorf("buat depot: %w", err)
 		}
-		user, err = q.CreateUser(ctx, sqlc.CreateUserParams{
+		*user, err = q.CreateUser(ctx, sqlc.CreateUserParams{
 			ID: idgen.NewID(), DepotID: depot.ID, Role: RoleOwner, Name: in.OwnerName, Phone: in.Phone, PasswordHash: hash,
 		})
 		if err != nil {
@@ -98,17 +117,20 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (sqlc.User, sq
 		}); err != nil {
 			return fmt.Errorf("buat produk bawaan: %w", err)
 		}
-		tokens, err = s.startSession(ctx, q, user, idgen.NewID(), in.Meta)
+		*tokens, err = s.startSession(ctx, q, *user, idgen.NewID(), in.Meta)
 		return err
 	})
-	if err != nil {
-		return sqlc.User{}, sqlc.Depot{}, Tokens{}, err
-	}
-	return user, depot, tokens, nil
 }
 
-func (s *Service) uniqueSlug(ctx context.Context, q *sqlc.Queries, name string) (string, error) {
+func (s *Service) uniqueSlug(ctx context.Context, q *sqlc.Queries, name string, forceSuffix bool) (string, error) {
 	base := Slugify(name)
+	if forceSuffix {
+		suffix, err := idgen.RandomToken(4)
+		if err != nil {
+			return "", err
+		}
+		return base + "-" + strings.ToLower(suffix), nil
+	}
 	candidate := base
 	for i := 2; i <= maxSlugAttempts; i++ {
 		exists, err := q.SlugExists(ctx, candidate)
@@ -124,7 +146,7 @@ func (s *Service) uniqueSlug(ctx context.Context, q *sqlc.Queries, name string) 
 	if err != nil {
 		return "", err
 	}
-	return base + "-" + suffix, nil
+	return base + "-" + strings.ToLower(suffix), nil
 }
 
 func (s *Service) Login(ctx context.Context, phoneNumber, password string, meta RequestMeta) (sqlc.User, Tokens, error) {

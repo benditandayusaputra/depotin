@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -291,4 +293,40 @@ func TestDepotUpdate(t *testing.T) {
 		t.Fatal("loyalty should be off")
 	}
 	c.mustStatus(c.do(http.MethodPatch, "/api/v1/depot", map[string]any{"open_time": "25:00"}), http.StatusUnprocessableEntity)
+}
+
+func TestConcurrentRegisterSameDepotName(t *testing.T) {
+	h := newHarness(t)
+	const n = 5
+	statuses := make([]int, n)
+	slugs := make([]string, n)
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			c := h.client()
+			c.ip = "198.51.100." + strconv.Itoa(150+i)
+			res := c.do(http.MethodPost, "/api/v1/auth/register", map[string]any{
+				"depot_name": "Depot Serentak", "name": "Pemilik", "phone": "0812333300" + strconv.Itoa(10+i), "password": testPassword,
+			})
+			statuses[i] = res.Status
+			if res.Status == http.StatusCreated {
+				var s sessionData
+				res.data(t, &s)
+				slugs[i] = s.Depot.Slug
+			}
+		}(i)
+	}
+	wg.Wait()
+	seen := map[string]bool{}
+	for i := range n {
+		if statuses[i] != http.StatusCreated {
+			t.Fatalf("register %d status %d", i, statuses[i])
+		}
+		if seen[slugs[i]] || !strings.HasPrefix(slugs[i], "depot-serentak") {
+			t.Fatalf("slug %q duplicated or malformed", slugs[i])
+		}
+		seen[slugs[i]] = true
+	}
 }
