@@ -90,3 +90,13 @@ export function paymentMethodLabel(method: PaymentMethod): string {
 export function fulfilmentLabel(fulfilment: Fulfilment): string {
   return FULFILMENT_LABELS[fulfilment];
 }
+
+export type PaymentStatus = components['schemas']['Order']['payment_status'];
+
+export function isFinalStatus(status: OrderStatus): boolean {
+  return status === 'delivered' || status === 'cancelled';
+}
+
+export function paymentStatusLabel(status: PaymentStatus): string {
+  return status === 'paid' ? 'Lunas' : 'Belum bayar';
+}

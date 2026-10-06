@@ -4,12 +4,21 @@
 
 - Tahap 0: orientasi dan kerangka.
 - Tahap 1: fondasi API, migrasi skema, fondasi web dengan proxy dan CSP, CI.
-- Sisi API untuk Tahap 2 sampai 10: akun dan depot, produk dan pelanggan, pesanan pemilik, endpoint publik, penyelesaian kurir dengan buku galon dan loyalitas, prediksi dan pengingat, SSE, dasbor dan laporan, data contoh dan penjadwal. Semua dengan tes HTTP dan unit (`make test-api`).
-- Berkas deployment: Dockerfile distroless, `deploy/docker-compose.yml`, `deploy/Caddyfile`, `deploy/update.sh`, `deploy/README.md`.
+- Tahap 2: akun dan depot (API dan web): daftar, masuk, rotasi token, penguncian, pengaturan depot, kurir, produk, penjaga rute.
+- Tahap 3: produk dan pelanggan, link pribadi terenkripsi dan rotasi, halaman pelanggan dengan prediksi.
+- Tahap 4: pesanan pemilik dengan idempotensi dan mesin status, papan pesanan, formulir satu layar, rincian pesanan.
+- Tahap 5: halaman publik `/d/[slug]`, pelacakan `/t/[token]`, pesanan publik, Playwright Alur B.
+- Tahap 6: kurir, penyelesaian satu transaksi, buku galon, loyalitas, antrean luring IndexedDB, halaman Galon.
+- Tahap 7: prediksi, antrean pengingat, kirim WA, atribusi konversi, `/p/[token]` pesan ulang satu ketukan.
+- Tahap 8: hub SSE, tiket sekali pakai, klien stream dengan sambung ulang dan mode berkala, bunyi pesanan baru.
+- Tahap 9: dasbor Hari ini, laporan rentang tanggal, ekspor CSV, log audit.
+- Tahap 10: data contoh deterministik, setel ulang demo terjadwal, akun demo di halaman masuk.
+- Tahap 12 (sebagian): Dockerfile, compose, Caddyfile, update.sh, deploy/README, ARCHITECTURE, PROPOSAL_NOTES, README.
 
 ## Tahap berjalan
 
-- Sisi web untuk Tahap 2 (daftar, masuk, penyiapan, pengaturan, penjaga rute) lalu Tahap 3 sampai 9 (pelanggan, pesanan, kurir, halaman publik, pengingat, stream, laporan).
+- Tahap 11: pengerasan. Sudah: EXPLAIN, pengukuran p95 lokal, govulncheck dan npm audit, SECURITY_CHECKLIST. Belum: audit aksesibilitas, uji lebar 360/768/1280 terdokumentasi, Lighthouse.
+- Tahap 12 sisa: tangkapan layar untuk README dan proposal.
 
 ## Ditunda
 

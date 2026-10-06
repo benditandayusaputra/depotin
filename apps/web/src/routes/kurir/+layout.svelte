@@ -1,17 +1,30 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
+  import Alert from '$lib/components/Alert.svelte';
   import Button from '$lib/components/Button.svelte';
   import Skeleton from '$lib/components/Skeleton.svelte';
   import { session } from '$lib/state/session.svelte';
+  import { errorMessage } from '$lib/utils/errors';
   import type { LayoutProps } from './$types';
 
   let { children }: LayoutProps = $props();
 
   let loggingOut = $state(false);
+  let sessionError = $state('');
 
-  $effect(() => {
-    if (session.status === 'unknown') void session.loadSession().catch(() => undefined);
+  async function loadSession() {
+    sessionError = '';
+    try {
+      await session.loadSession();
+    } catch (error) {
+      if (session.status === 'unknown') sessionError = errorMessage(error);
+    }
+  }
+
+  onMount(() => {
+    if (session.status === 'unknown') void loadSession();
   });
 
   $effect(() => {
@@ -41,11 +54,15 @@
         <p class="truncate text-lg font-bold">{session.user?.name}</p>
         <p class="truncate text-sm text-muted">{session.depot?.name}</p>
       </div>
-      <Button variant="ghost" loading={loggingOut} onclick={logout}>Keluar</Button>
+      <Button variant="ghost" size="lg" loading={loggingOut} onclick={logout}>Keluar</Button>
     </header>
     <main class="mx-auto w-full max-w-md flex-1 px-4 py-5">
       {@render children()}
     </main>
+  </div>
+{:else if sessionError}
+  <div class="mx-auto w-full max-w-md px-4 py-8">
+    <Alert kind="error" onretry={() => void loadSession()}>{sessionError}</Alert>
   </div>
 {:else}
   <div class="mx-auto w-full max-w-md px-4 py-8" aria-busy="true">
