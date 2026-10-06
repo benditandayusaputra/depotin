@@ -17,12 +17,14 @@
 
 ## Tahap berjalan
 
-- Tahap 11: pengerasan. Sudah: EXPLAIN, pengukuran p95 lokal, govulncheck dan npm audit, SECURITY_CHECKLIST. Belum: audit aksesibilitas, uji lebar 360/768/1280 terdokumentasi, Lighthouse.
-- Tahap 12 sisa: tangkapan layar untuk README dan proposal.
+- Tahap 7 gerbang: Playwright Alur A lolos (`tests/alur-a.spec.ts`).
+- Tahap 11: pengerasan. Sudah: EXPLAIN, pengukuran p95 lokal, govulncheck dan npm audit, SECURITY_CHECKLIST, cakupan tes. Berjalan: audit aksesibilitas, uji lebar 360/768/1280, Lighthouse.
+- Tahap 12 sisa: tangkapan layar untuk README dan proposal (berjalan).
 
 ## Ditunda
 
-Belum ada.
+- Fitur Could (`PRD.md` 5.3) tidak dikerjakan: F-17 jual dadakan oleh kurir, F-18 impor pelanggan CSV, F-19 manifest PWA. Alasan: prioritas Must dan Should lebih dulu; ketiganya tidak dibutuhkan tiga alur utama.
+- Deploy sungguhan ke Neon (sudah dimigrasi dan diisi data contoh), VPS, dan Vercel menunggu akses dan keputusan pengguna. Langkahnya di `deploy/README.md`.
 
 ## Menjalankan aplikasi
 
