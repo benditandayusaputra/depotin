@@ -125,3 +125,20 @@ Hasil: pada data contoh perencana memilih pemindaian berurutan karena setiap tab
 Konteks: `govulncheck` melaporkan 20 kerentanan pustaka standar karena `go.mod` hanya menyebut `go 1.26.0`, sehingga toolchain 1.26.0 yang dipakai.
 
 Pilihan: menambahkan `toolchain go1.26.8` di `go.mod`. Setelah itu `govulncheck ./...` melaporkan nol kerentanan yang dipanggil kode. `npm audit --omit=dev` juga nol.
+
+## 2026-10-06: Pengukuran performa API lokal
+
+Konteks: SPEC 11.1 menargetkan p95 baca di bawah 150 ms, p95 tulis pesanan di bawah 300 ms, dan memori API saat diam di bawah 60 MB.
+
+Hasil pada data contoh, API dan PostgreSQL di mesin yang sama, 100 permintaan berurutan per endpoint:
+
+| Endpoint | p50 | p95 |
+|---|---|---|
+| `GET /orders` | 3,0 ms | 4,6 ms |
+| `GET /customers` | 1,4 ms | 2,4 ms |
+| `GET /dashboard/today` | 3,8 ms | 8,9 ms |
+| `GET /reminders` (termasuk susun ulang antrean) | 0,4 ms | 0,7 ms |
+| `GET /public/depots/{slug}` (cache) | 0,3 ms | 0,5 ms |
+| `POST /orders` | 0,4 ms | 0,5 ms |
+
+Memori proses API setelah pengukuran: 31 MB. Di produksi, waktu tambahan berasal dari jarak jaringan VPS ke Neon (sekitar 1 sampai 5 ms per kueri di region yang sama) dan bangun tidur Neon yang dikecualikan dari target.
