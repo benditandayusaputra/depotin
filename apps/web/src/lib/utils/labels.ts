@@ -20,3 +20,73 @@ export function roleLabel(role: Role): string {
 export function productKindLabel(kind: ProductKind): string {
   return PRODUCT_KIND_LABELS[kind];
 }
+
+export type OrderStatus = components['schemas']['OrderStatus'];
+export type OrderSource = components['schemas']['OrderSource'];
+export type Confidence = components['schemas']['Confidence'];
+export type PaymentMethod = components['schemas']['PaymentMethod'];
+export type Fulfilment = components['schemas']['Fulfilment'];
+
+const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'Menunggu konfirmasi',
+  confirmed: 'Dikonfirmasi',
+  on_delivery: 'Sedang diantar',
+  delivered: 'Selesai',
+  cancelled: 'Dibatalkan'
+};
+
+const ORDER_SOURCE_LABELS: Record<OrderSource, string> = {
+  public: 'Halaman depot',
+  link: 'Link pribadi',
+  reminder: 'Pengingat',
+  owner: 'Pemilik',
+  courier: 'Kurir'
+};
+
+const CONFIDENCE_LABELS: Record<Confidence, string> = {
+  none: 'Belum ada',
+  low: 'Rendah',
+  medium: 'Sedang',
+  high: 'Tinggi'
+};
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: 'Tunai',
+  transfer: 'Transfer',
+  qris: 'QRIS'
+};
+
+const FULFILMENT_LABELS: Record<Fulfilment, string> = {
+  delivery: 'Diantar',
+  pickup: 'Ambil sendiri'
+};
+
+export const ORDER_STATUSES: OrderStatus[] = [
+  'pending',
+  'confirmed',
+  'on_delivery',
+  'delivered',
+  'cancelled'
+];
+
+export const PAYMENT_METHODS: PaymentMethod[] = ['cash', 'transfer', 'qris'];
+
+export function orderStatusLabel(status: OrderStatus): string {
+  return ORDER_STATUS_LABELS[status];
+}
+
+export function orderSourceLabel(source: OrderSource): string {
+  return ORDER_SOURCE_LABELS[source];
+}
+
+export function confidenceLabel(confidence: Confidence): string {
+  return CONFIDENCE_LABELS[confidence];
+}
+
+export function paymentMethodLabel(method: PaymentMethod): string {
+  return PAYMENT_METHOD_LABELS[method];
+}
+
+export function fulfilmentLabel(fulfilment: Fulfilment): string {
+  return FULFILMENT_LABELS[fulfilment];
+}

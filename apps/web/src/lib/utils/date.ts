@@ -36,3 +36,32 @@ export function relativeDays(iso: string, now: Date = new Date()): string {
   if (diff === -1) return 'kemarin';
   return diff > 0 ? `${diff} hari lagi` : `${-diff} hari lalu`;
 }
+
+const isoDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: TIME_ZONE
+});
+
+const dayFormatter = new Intl.DateTimeFormat('id-ID', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: TIME_ZONE
+});
+
+export function isoDate(date: Date = new Date()): string {
+  return isoDateFormatter.format(date);
+}
+
+export function shiftDays(iso: string, days: number): string {
+  return isoDate(new Date(new Date(`${iso}T12:00:00+07:00`).getTime() + days * DAY_MS));
+}
+
+export function formatDateTime(iso: string): string {
+  return `${formatDate(iso)} ${formatTime(iso)}`;
+}
+
+export function formatShortDay(iso: string): string {
+  return dayFormatter.format(new Date(iso));
+}

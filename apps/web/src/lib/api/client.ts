@@ -83,7 +83,7 @@ function sendRequest(path: string, init: ApiFetchInit): Promise<Response> {
   return fetch(`${API_BASE}${path}`, request);
 }
 
-export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
+export async function apiFetchPayload(path: string, init: ApiFetchInit = {}): Promise<unknown> {
   const first = await sendRequest(path, init);
   const shouldRetry =
     first.status === 401 && !NO_REFRESH_PATHS.has(path) && (await refreshSession());
@@ -94,6 +94,10 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     throw new ApiError(response.status, isErrorResponse(parsed) ? parsed.error : FALLBACK_ERROR);
   }
 
-  const payload = await readJson(response);
+  return readJson(response);
+}
+
+export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
+  const payload = await apiFetchPayload(path, init);
   return (isEnvelope(payload) ? payload.data : payload) as T;
 }

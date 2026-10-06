@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatTime, relativeDays } from './date';
+import { formatDate, formatTime, isoDate, relativeDays, shiftDays } from './date';
 
 describe('formatDate', () => {
   it.each([
@@ -34,5 +34,13 @@ describe('relativeDays', () => {
     ['three days ago', '2026-10-03T01:00:00Z', '3 hari lalu']
   ])('%s', (_name, iso, expected) => {
     expect(relativeDays(iso, now)).toBe(expected);
+  });
+});
+
+describe('isoDate and shiftDays', () => {
+  it('formats in Jakarta time and shifts whole days', () => {
+    expect(isoDate(new Date('2026-10-06T18:30:00Z'))).toBe('2026-10-07');
+    expect(shiftDays('2026-10-31', 1)).toBe('2026-11-01');
+    expect(shiftDays('2026-03-01', -1)).toBe('2026-02-28');
   });
 });
