@@ -33,8 +33,10 @@ func (h *Handler) Register(r fiber.Router, ownerOnly, loggedIn fiber.Handler) {
 	r.Post("/orders/:id/confirm", ownerOnly, h.confirm)
 	r.Post("/orders/:id/assign", ownerOnly, h.assign)
 	r.Post("/orders/:id/dispatch", loggedIn, h.dispatch)
+	r.Post("/orders/:id/deliver", loggedIn, h.deliver)
 	r.Post("/orders/:id/cancel", ownerOnly, h.cancel)
 	r.Post("/orders/:id/mark-paid", ownerOnly, h.markPaid)
+	r.Get("/customers/:id/orders", ownerOnly, h.customerOrders)
 }
 
 func actorFrom(c fiber.Ctx) Actor {

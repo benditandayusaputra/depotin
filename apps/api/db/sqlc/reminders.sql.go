@@ -7,9 +7,62 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+const getReminder = `-- name: GetReminder :one
+SELECT id, depot_id, customer_id, due_date, predicted_empty_at, status, sent_at, sent_by, order_id, created_at FROM reminders WHERE id = $1 AND depot_id = $2
+`
+
+type GetReminderParams struct {
+	ID      uuid.UUID
+	DepotID uuid.UUID
+}
+
+func (q *Queries) GetReminder(ctx context.Context, arg GetReminderParams) (Reminder, error) {
+	row := q.db.QueryRow(ctx, getReminder, arg.ID, arg.DepotID)
+	var i Reminder
+	err := row.Scan(
+		&i.ID,
+		&i.DepotID,
+		&i.CustomerID,
+		&i.DueDate,
+		&i.PredictedEmptyAt,
+		&i.Status,
+		&i.SentAt,
+		&i.SentBy,
+		&i.OrderID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const markReminderOrdered = `-- name: MarkReminderOrdered :execrows
+UPDATE reminders SET status = 'ordered', order_id = $2
+WHERE id = $1 AND customer_id = $3 AND status = 'sent' AND sent_at >= $4::timestamptz
+`
+
+type MarkReminderOrderedParams struct {
+	ID         uuid.UUID
+	OrderID    *uuid.UUID
+	CustomerID uuid.UUID
+	SentAfter  time.Time
+}
+
+func (q *Queries) MarkReminderOrdered(ctx context.Context, arg MarkReminderOrderedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markReminderOrdered,
+		arg.ID,
+		arg.OrderID,
+		arg.CustomerID,
+		arg.SentAfter,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
 
 const reopenReminderForCancelledOrder = `-- name: ReopenReminderForCancelledOrder :exec
 UPDATE reminders SET status = 'sent', order_id = NULL WHERE order_id = $1 AND status = 'ordered'

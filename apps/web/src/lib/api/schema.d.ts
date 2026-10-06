@@ -452,6 +452,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/orders/{id}/deliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menyelesaikan pengantaran, menulis buku galon, loyalitas, dan prediksi */
+        post: operations["deliverOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Riwayat pesanan seorang pelanggan */
+        get: operations["listCustomerOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Buku galon seorang pelanggan */
+        get: operations["listCustomerLedger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/ledger-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Penyesuaian manual buku galon */
+        post: operations["adjustCustomerLedger"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gallons/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Total galon dipinjam dan daftar galon mengendap */
+        get: operations["gallonSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courier/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Antrean antar kurir yang sedang masuk, terurut */
+        get: operations["courierQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courier/customers/{id}/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menyimpan koordinat pelanggan dari HP kurir */
+        post: operations["saveCustomerLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -778,6 +897,24 @@ export interface components {
             /** Format: date */
             scheduled_date?: string;
             note?: string;
+        };
+        LedgerEntry: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            order_id: string | null;
+            /** @enum {string} */
+            kind: "delivery" | "adjustment" | "lost";
+            delta: number;
+            balance_after: number;
+            note: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        GallonSummary: {
+            total_on_loan: number;
+            customers_with_loan: number;
+            idle: components["schemas"]["Customer"][];
         };
         SessionResponse: {
             data: {
@@ -1592,6 +1729,197 @@ export interface operations {
         responses: {
             200: components["responses"]["Order"];
             409: components["responses"]["Error"];
+        };
+    };
+    deliverOrder: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    gallons_returned: number;
+                    payment_method?: components["schemas"]["PaymentMethod"];
+                    paid?: boolean;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Order"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    listCustomerOrders: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daftar pesanan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderListResponse"];
+                };
+            };
+        };
+    };
+    listCustomerLedger: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Buku galon */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["LedgerEntry"][];
+                        meta: components["schemas"]["Cursor"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    adjustCustomerLedger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "adjustment" | "lost";
+                    /** @description Positif menambah galon di pelanggan, negatif mengurangi */
+                    delta: number;
+                    note: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Catatan ditambahkan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["LedgerEntry"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    gallonSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ringkasan galon */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GallonSummary"];
+                    };
+                };
+            };
+        };
+    };
+    courierQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Antrean */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CourierOrder"][];
+                    };
+                };
+            };
+        };
+    };
+    saveCustomerLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    lat: number;
+                    lng: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Tersimpan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlagResponse"];
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
 }

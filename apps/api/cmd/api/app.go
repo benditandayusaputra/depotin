@@ -14,6 +14,7 @@ import (
 	"github.com/benditandayusaputra/depotin/apps/api/internal/config"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/customer"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/depot"
+	"github.com/benditandayusaputra/depotin/apps/api/internal/gallon"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/order"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/clock"
 	"github.com/benditandayusaputra/depotin/apps/api/internal/platform/crypto"
@@ -91,7 +92,10 @@ func newApp(d dependencies) (*fiber.App, error) {
 	product.NewHandler(d.pool, nil).Register(v1, ownerOnly)
 	customer.NewHandler(d.pool, d.clock, customer.NewLinks(d.cfg.WebOrigin, sealer)).Register(v1, ownerOnly)
 	orderSvc := order.NewService(d.pool, d.clock, nil)
-	order.NewHandler(orderSvc).Register(v1, ownerOnly, auth.RequireLogin())
+	orderHandler := order.NewHandler(orderSvc)
+	orderHandler.Register(v1, ownerOnly, auth.RequireLogin())
+	orderHandler.RegisterCourier(v1, httpx.RequireRole(auth.RoleCourier))
+	gallon.NewHandler(d.pool, d.clock).Register(v1, ownerOnly)
 
 	return app, nil
 }

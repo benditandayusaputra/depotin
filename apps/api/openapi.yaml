@@ -621,6 +621,175 @@ paths:
           $ref: "#/components/responses/Order"
         "409":
           $ref: "#/components/responses/Error"
+  /orders/{id}/deliver:
+    post:
+      operationId: deliverOrder
+      summary: Menyelesaikan pengantaran, menulis buku galon, loyalitas, dan prediksi
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [gallons_returned]
+              properties:
+                gallons_returned:
+                  type: integer
+                  minimum: 0
+                payment_method:
+                  $ref: "#/components/schemas/PaymentMethod"
+                paid:
+                  type: boolean
+      responses:
+        "200":
+          $ref: "#/components/responses/Order"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /customers/{id}/orders:
+    get:
+      operationId: listCustomerOrders
+      summary: Riwayat pesanan seorang pelanggan
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Daftar pesanan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderListResponse"
+  /customers/{id}/ledger:
+    get:
+      operationId: listCustomerLedger
+      summary: Buku galon seorang pelanggan
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Buku galon
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LedgerEntry"
+                  meta:
+                    $ref: "#/components/schemas/Cursor"
+        "404":
+          $ref: "#/components/responses/Error"
+  /customers/{id}/ledger-adjustments:
+    post:
+      operationId: adjustCustomerLedger
+      summary: Penyesuaian manual buku galon
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, delta, note]
+              properties:
+                kind:
+                  type: string
+                  enum: [adjustment, lost]
+                delta:
+                  type: integer
+                  description: Positif menambah galon di pelanggan, negatif mengurangi
+                note:
+                  type: string
+                  minLength: 3
+                  maxLength: 200
+      responses:
+        "201":
+          description: Catatan ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LedgerEntry"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /gallons/summary:
+    get:
+      operationId: gallonSummary
+      summary: Total galon dipinjam dan daftar galon mengendap
+      responses:
+        "200":
+          description: Ringkasan galon
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/GallonSummary"
+  /courier/queue:
+    get:
+      operationId: courierQueue
+      summary: Antrean antar kurir yang sedang masuk, terurut
+      responses:
+        "200":
+          description: Antrean
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CourierOrder"
+  /courier/customers/{id}/location:
+    post:
+      operationId: saveCustomerLocation
+      summary: Menyimpan koordinat pelanggan dari HP kurir
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lat, lng]
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+      responses:
+        "200":
+          description: Tersimpan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagResponse"
+        "404":
+          $ref: "#/components/responses/Error"
 components:
   parameters:
     IdempotencyKey:
@@ -1399,6 +1568,40 @@ components:
         note:
           type: string
           maxLength: 300
+    LedgerEntry:
+      type: object
+      required: [id, order_id, kind, delta, balance_after, note, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: [string, "null"]
+          format: uuid
+        kind:
+          type: string
+          enum: [delivery, adjustment, lost]
+        delta:
+          type: integer
+        balance_after:
+          type: integer
+        note:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    GallonSummary:
+      type: object
+      required: [total_on_loan, customers_with_loan, idle]
+      properties:
+        total_on_loan:
+          type: integer
+        customers_with_loan:
+          type: integer
+        idle:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
     SessionResponse:
       type: object
       required: [data]
